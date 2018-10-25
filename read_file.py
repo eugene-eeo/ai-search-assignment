@@ -1,3 +1,7 @@
+import sys
+import json
+
+
 def parse_int(x):
     b = ""
     for char in x:
@@ -27,4 +31,8 @@ def read(filename):
             M[i][j] = lengths[k]
             M[j][i] = lengths[k]
             k += 1
-    return name, M
+    return M
+
+
+if __name__ == '__main__':
+    print(json.dumps(read(sys.argv[1])))
