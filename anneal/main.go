@@ -1,5 +1,6 @@
 package main
 
+import "flag"
 import "time"
 import "os"
 import "encoding/json"
@@ -9,8 +10,9 @@ import "math/rand"
 type Matrix = [][]int
 
 type Path struct {
-	Tour []int `json:"tour"`
-	Cost int   `json:"cost"`
+	Tour []int   `json:"tour"`
+	Cost int     `json:"cost"`
+	Time float64 `json:"time"`
 }
 
 func neighbour(s []int) []int {
@@ -45,16 +47,17 @@ func initial(n int) []int {
 	return s
 }
 
-func anneal(matrix Matrix) ([]int, int) {
+func anneal(matrix Matrix, m, k float64) ([]int, int) {
 	n := len(matrix)
 	s := initial(n)
 	rand.Shuffle(n, func(i, j int) {
 		s[i], s[j] = s[j], s[i]
 	})
 
-	T := 1.0 + 0.5*math.Log10(float64(n))
+	// sometimes 1/(1+eps)^n ~= 0 (floating point)
+	alpha := math.Min(1-1/math.Pow(k, float64(n)), 0.9999)
 	T_min := 0.00001
-	alpha := 0.99
+	T := m * float64(n)
 	e := float64(cost(s, matrix))
 
 	for T > T_min {
@@ -73,6 +76,10 @@ func anneal(matrix Matrix) ([]int, int) {
 }
 
 func main() {
+	kPtr := flag.Float64("k", 1.59, "α = 1/k^n")
+	mPtr := flag.Float64("m", 1.00, "T = m*n")
+	flag.Parse()
+
 	rand.Seed(time.Now().UnixNano())
 	matrix := [][]int{}
 	r := json.NewDecoder(os.Stdin)
@@ -80,10 +87,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	tour, cost := anneal(matrix)
+
+	// actually do annealing
+	t0 := time.Now()
+	tour, cost := anneal(matrix, *mPtr, *kPtr)
+	t1 := time.Now()
+
 	w := json.NewEncoder(os.Stdout)
 	w.Encode(Path{
 		Tour: tour,
 		Cost: cost,
+		Time: t1.Sub(t0).Seconds(),
 	})
 }
