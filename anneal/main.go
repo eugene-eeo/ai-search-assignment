@@ -48,14 +48,15 @@ func initial(n int) []int {
 }
 
 func anneal(matrix Matrix, alpha float64) ([]int, int) {
+	// TODO: we know the memory requirements beforehand (we only need 3
+	// arrays, s, s', and s*). So we can implement a zero-alloc version
+	// to completely subvert GC.
 	n := len(matrix)
 	s := initial(n)
 	rand.Shuffle(n, func(i, j int) {
 		s[i], s[j] = s[j], s[i]
 	})
 
-	// sometimes 1/(1+eps)^n ~= 0 (floating point)
-	//alpha := math.Min(1-1/math.Pow(k, float64(n)), 0.9999)
 	T_min := 0.00001
 	T := float64(n * n)
 	e := float64(cost(s, matrix))
@@ -91,8 +92,7 @@ func main() {
 
 	rand.Seed(time.Now().UnixNano())
 	matrix := [][]int{}
-	r := json.NewDecoder(os.Stdin)
-	err := r.Decode(&matrix)
+	err := json.NewDecoder(os.Stdin).Decode(&matrix)
 	if err != nil {
 		panic(err)
 	}
