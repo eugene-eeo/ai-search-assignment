@@ -24,13 +24,13 @@ def plot(size):
             d[k] = costs
 
     min_cost = min(min(costs) for costs in d.values())
-    fig, axs = plt.subplots(4, 2, sharey=True, tight_layout=True, squeeze=True)
-    for i in range(0, 4):
-        for j in range(0, 2):
-            k = K[4*j + i]
+    fig, axs = plt.subplots(2, 4, sharey=True, tight_layout=True, squeeze=True)
+    for i in range(4):
+        for j in range(2):
+            k = K[i + 4*j]
             to_plot = np.array(d[k]) / min_cost
 
-            ax = axs[i,j]
+            ax = axs[j,i]
             ax.hist(to_plot, weights=np.zeros_like(to_plot) + 1. / to_plot.size)
             ax.grid(True)
 
