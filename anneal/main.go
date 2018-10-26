@@ -10,9 +10,8 @@ import "math/rand"
 type Matrix = [][]int
 
 type Path struct {
-	Tour []int   `json:"tour"`
-	Cost int     `json:"cost"`
-	Time float64 `json:"time"`
+	Tour []int `json:"tour"`
+	Cost int   `json:"cost"`
 }
 
 func neighbour(s []int) []int {
@@ -32,6 +31,7 @@ func cost(s []int, matrix Matrix) int {
 	for i := 1; i < len(s); i++ {
 		d += matrix[s[i-1]][s[i]]
 	}
+	d += matrix[s[len(s)-1]][s[0]]
 	return d
 }
 
@@ -47,7 +47,7 @@ func initial(n int) []int {
 	return s
 }
 
-func anneal(matrix Matrix, m, k float64) ([]int, int) {
+func anneal(matrix Matrix, alpha float64) ([]int, int) {
 	n := len(matrix)
 	s := initial(n)
 	rand.Shuffle(n, func(i, j int) {
@@ -55,15 +55,25 @@ func anneal(matrix Matrix, m, k float64) ([]int, int) {
 	})
 
 	// sometimes 1/(1+eps)^n ~= 0 (floating point)
-	alpha := math.Min(1-1/math.Pow(k, float64(n)), 0.9999)
+	//alpha := math.Min(1-1/math.Pow(k, float64(n)), 0.9999)
 	T_min := 0.00001
-	T := m * float64(n)
+	T := float64(n * n)
 	e := float64(cost(s, matrix))
+	best_s := s
+	best_e := e
 
 	for T > T_min {
 		for i := 0; i < 100; i++ {
 			next_s := neighbour(s)
 			next_e := float64(cost(next_s, matrix))
+			// if next_e < best_e then necessarily we have r < p(...)
+			if next_e < best_e {
+				best_s = next_s
+				best_e = next_e
+				s = next_s
+				e = next_e
+				continue
+			}
 			if rand.Float64() < p(e, next_e, T) {
 				s = next_s
 				e = next_e
@@ -72,12 +82,11 @@ func anneal(matrix Matrix, m, k float64) ([]int, int) {
 		T *= alpha
 	}
 
-	return s, int(e)
+	return best_s, int(best_e)
 }
 
 func main() {
-	kPtr := flag.Float64("k", 1.59, "α = 1/k^n")
-	mPtr := flag.Float64("m", 1.00, "T = m*n")
+	alphaPtr := flag.Float64("alpha", 0.99670, "T *= alpha")
 	flag.Parse()
 
 	rand.Seed(time.Now().UnixNano())
@@ -89,14 +98,10 @@ func main() {
 	}
 
 	// actually do annealing
-	t0 := time.Now()
-	tour, cost := anneal(matrix, *mPtr, *kPtr)
-	t1 := time.Now()
-
+	tour, cost := anneal(matrix, *alphaPtr)
 	w := json.NewEncoder(os.Stdout)
 	w.Encode(Path{
 		Tour: tour,
 		Cost: cost,
-		Time: t1.Sub(t0).Seconds(),
 	})
 }
