@@ -5,57 +5,59 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from read_file import read
 
-alpha = [
-    0.98,
-    0.99,
-    0.992,
-    0.994,
-    0.996,
-    0.9967,
-    0.998,
-    0.9995,
+ALPHAS = [
+    #0.98,
+    #0.99,
+    #0.992,
+    #0.994,
+    #0.996,
+    #0.9967,
+    #0.998,
+    #0.9995,
+    #0.9997,
+    #0.9999,
+    0.99993,
 ]
 
 SIZES = [
-    #('012', 500),
-    #('017', 500),
-    ('021', 500),
-    ('026', 300),
-    ('042', 280),
-    ('048', 250),
-    ('058', 200),
-    ('175', 150),
-    ('180', 75),
-    ('535', 20),
+    #('012', 200),
+    #('017', 200),
+    #('021', 200),
+    #('026', 120),
+    ('042', 224),
+    ('048', 200),
+    ('058', 160),
+    ('175', 120),
+    ('180', 80),
+    ('535', 40),
 ]
 
 
-def task(size, times, alpha, lock=threading.Lock()):
+def auto_map(tp):
+    for size, times in SIZES:
+        matrix = json.dumps(read(f'city_data/AISearchFile{size}.txt')).encode('ascii')
+        for a in ALPHAS:
+            for i in range(1, times+1):
+                tp.submit(task, tp, matrix, size, i, times, a)
+
+
+
+def task(tp, matrix, size, done, times, alpha, lock=threading.Lock()):
     with lock:
-        print(f"Running size={size}, alpha={alpha}")
+        print(f"[{done}/{times}] RUN  size={size}, alpha={alpha}")
 
-    matrix = read(f'city_data/AISearchFile{size}.txt')
-    input = json.dumps(matrix).encode('ascii')
+    proc = subprocess.run(
+        ['anneal/anneal', f'-alpha={alpha}'],
+        capture_output=True,
+        input=matrix,
+        )
 
-    with open(f'results/results-{size}-{alpha}.txt', mode='ab') as fp:
-        for i in range(times):
-            proc = subprocess.run(
-                ['anneal/anneal', f'-alpha={alpha}'],
-                capture_output=True,
-                input=input,
-                )
+    with lock:
+        with open(f'results/newswap-{size}-{alpha}.txt', mode='ab') as fp:
             fp.write(proc.stdout)
-
-    with lock:
-        print(f"Done size={size}, alpha={alpha}")
+            fp.flush()
+        print(f"[{done}/{times}] DONE size={size}, alpha={alpha}")
 
 
 if __name__ == '__main__':
-    tp = ThreadPoolExecutor(max_workers=4)
-    tasks = []
-    for size, times in SIZES:
-        for a in alpha:
-            f = tp.submit(task, size, times, a)
-            tasks.append(f)
-    for future in tasks:
-        future.result()
+    auto_map(ThreadPoolExecutor(max_workers=4))

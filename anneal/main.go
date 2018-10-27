@@ -14,16 +14,22 @@ type Path struct {
 	Cost int   `json:"cost"`
 }
 
-func neighbour(s []int) []int {
-	x := make([]int, len(s))
+func neighbour(x []int, s []int) {
 	copy(x, s)
-	i := rand.Intn(len(s) - 1)
-	j := (i + 1) + rand.Intn(len(s)-(i+1))
+	// Observations:
+	//  - cost((1,2,3)) = cost((2,3,1)) = cost((3,1,2)), so first city can be fixed.
+	//  - cost((1,2,3)) = cost((3,2,1)), so reverse order is the same cost.
+	n := len(s)
+	i := 1
+	j := n - 1
+	for i == 1 && j == n-1 {
+		i = 1 + rand.Intn(len(s)-2)
+		j = (i + 1) + rand.Intn(len(s)-(i+1))
+	}
 	m := (j - i) / 2
 	for k := 0; k < m; k++ {
 		x[i+k], x[j-k] = x[j-k], x[i+k]
 	}
-	return x
 }
 
 func cost(s []int, matrix Matrix) int {
@@ -47,36 +53,43 @@ func initial(n int) []int {
 	return s
 }
 
+func ccopy(x []int) []int {
+	s := make([]int, len(x))
+	copy(s, x)
+	return s
+}
+
 func anneal(matrix Matrix, alpha float64) ([]int, int) {
 	// TODO: we know the memory requirements beforehand (we only need 3
 	// arrays, s, s', and s*). So we can implement a zero-alloc version
 	// to completely subvert GC.
 	n := len(matrix)
 	s := initial(n)
-	rand.Shuffle(n, func(i, j int) {
-		s[i], s[j] = s[j], s[i]
+	rand.Shuffle(n-1, func(i, j int) {
+		s[i+1], s[j+1] = s[j+1], s[i+1]
 	})
 
 	T_min := 0.00001
 	T := float64(n * n)
 	e := float64(cost(s, matrix))
-	best_s := s
+	next_s := ccopy(s)
+	best_s := ccopy(s)
 	best_e := e
 
 	for T > T_min {
 		for i := 0; i < 100; i++ {
-			next_s := neighbour(s)
+			neighbour(next_s, s)
 			next_e := float64(cost(next_s, matrix))
 			// if next_e < best_e then necessarily we have r < p(...)
 			if next_e < best_e {
-				best_s = next_s
+				copy(best_s, next_s)
 				best_e = next_e
-				s = next_s
+				copy(s, next_s)
 				e = next_e
 				continue
 			}
 			if rand.Float64() < p(e, next_e, T) {
-				s = next_s
+				copy(s, next_s)
 				e = next_e
 			}
 		}
