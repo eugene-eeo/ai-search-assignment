@@ -17,16 +17,16 @@ alpha = [
 ]
 
 SIZES = [
-    ('012', 500),
-    ('017', 500),
-#    ('021', 500),
-#    ('026', 300),
-#    ('042', 280),
-#    ('048', 250),
-#    ('058', 200),
-#    ('175', 100),
-#    ('180', 50),
-#    ('535', 15),
+    #('012', 500),
+    #('017', 500),
+    ('021', 500),
+    ('026', 300),
+    ('042', 280),
+    ('048', 250),
+    ('058', 200),
+    ('175', 150),
+    ('180', 75),
+    ('535', 20),
 ]
 
 
@@ -37,7 +37,7 @@ def task(size, times, alpha, lock=threading.Lock()):
     matrix = read(f'city_data/AISearchFile{size}.txt')
     input = json.dumps(matrix).encode('ascii')
 
-    with open(f'results-{size}-{alpha}.txt', mode='wb') as fp:
+    with open(f'results/results-{size}-{alpha}.txt', mode='ab') as fp:
         for i in range(times):
             proc = subprocess.run(
                 ['anneal/anneal', f'-alpha={alpha}'],

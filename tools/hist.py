@@ -16,8 +16,8 @@ def parse(f):
 def plot(size):
     d = {}
     K = []
-    for filename in glob.glob(f'results-{size}-*.txt'):
-        k = filename[len(f'results-{size}-'):-len('.txt')]
+    for filename in glob.glob(f'results/results-{size}-*.txt'):
+        k = filename[len(f'results/results-{size}-'):-len('.txt')]
         K.append(k)
         with open(filename, mode='r') as fp:
             costs = parse(fp)
