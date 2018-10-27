@@ -20,16 +20,13 @@ func neighbour(x []int, s []int) {
 	//  - cost((1,2,3)) = cost((2,3,1)) = cost((3,1,2)), so first city can be fixed.
 	//  - cost((1,2,3)) = cost((3,2,1)), so reverse order is the same cost.
 	n := len(s)
-	i := 1
-	j := n - 1
-	for i == 1 && j == n-1 {
-		i = 1 + rand.Intn(n-2)
-		j = (i + 1) + rand.Intn(n-(i+1))
+	i := 0
+	j := 0
+	for i == j {
+		i = rand.Intn(n)
+		j = rand.Intn(n)
 	}
-	m := (j - i) / 2
-	for k := 0; k < m; k++ {
-		x[i+k], x[j-k] = x[j-k], x[i+k]
-	}
+	x[i], x[j] = x[j], x[i]
 }
 
 func cost(s []int, matrix Matrix) int {
