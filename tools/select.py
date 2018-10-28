@@ -21,7 +21,7 @@ def main():
             min_tour = tour
 
     print("Mean:     ", statistics.mean(costs))
-    print("Stdev:    ", statistics.stdev(costs))
+    print("Variance: ", statistics.variance(costs))
     print("Min:      ", min(costs))
     print("Max:      ", max(costs))
     print("Min tour: ", min_tour)
