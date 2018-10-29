@@ -1,7 +1,5 @@
 build:
 	cd anneal && go build && cd -
-	cd ./anneal-consecutive-swap && go build && cd -
-	cd ./anneal-random-swap && go build && cd -
 
 push:
 	git push origin
