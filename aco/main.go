@@ -2,6 +2,8 @@ package main
 
 import "encoding/json"
 import "flag"
+import "fmt"
+import "math"
 import "math/rand"
 import "os"
 
@@ -12,12 +14,14 @@ type Path struct {
 	Cost int   `json:"cost"`
 }
 
-func make_pheromone_matrix(n int) [][]float64 {
-	x := make([][]float64, n)
-	for i := 0; i < n; i++ {
-		x[i] = make([]float64, n)
-		for j := 0; j < n; j++ {
-			x[i][j] = 5.0
+func pherome_matrix(matrix [][]float64) [][]float64 {
+	x := make([][]float64, len(matrix))
+	for i, _ := range x {
+		x[i] = make([]float64, len(matrix))
+		for j, _ := range x[i] {
+			if i != j {
+				x[i][j] = 1 / matrix[i][j]
+			}
 		}
 	}
 	return x
@@ -48,64 +52,66 @@ func cost(matrix [][]float64, tour []int) float64 {
 	return d
 }
 
+type pair struct {
+	visited bool
+	weight  float64
+}
+
 func aco(matrix [][]float64, G_max int, alpha, explore, exploit float64) ([]int, float64) {
 	n := len(matrix)
-	P := make_pheromone_matrix(n)
+	P := pherome_matrix(matrix)
 	S := zeroes(n)
+	Q := 0.2
 	num_ants := n
 	best_tour := initial(n)
 	best_cost := cost(matrix, best_tour)
+
+	tour := make([]int, n)
+	weights := make([]pair, n)
 
 	// TODO:
 	// parallelise this by exploiting the fact that we can compute ~4 ants tours
 	// at once, ant-worker just needs to return tour and cost.
 	for G_max > 0 {
 		G_max--
-		tour := make([]int, n)
-		weights := make(map[int]float64, n-1)
+		if (G_max % 1000) == 0 {
+			fmt.Println(G_max, best_cost)
+		}
 
 		for ant := 0; ant < num_ants; ant++ {
-			u := rand.Intn(n)
-			tour[0] = u
-			for v, _ := range matrix[u] {
-				if u != v {
-					weights[v] = 0
-				}
+			src := rand.Intn(n)
+			tour[0] = src
+			for v := 0; v < n; v++ {
+				weights[v].visited = (v == src)
 			}
 			for z := 1; z < n; z++ {
 				total := 0.0
-				dest := 0
-				p := rand.Float64()
-				if p < 0.3 {
-					min := 10000000.0
-					for city, distance := range matrix[u] {
-						_, ok := weights[city]
-						if ok && distance < min {
-							dest = city
-							min = distance
-						}
+				dest := src
+				for v, info := range weights {
+					if !info.visited {
+						// + eps to alleviate 0 weight
+						info.weight = math.Pow(P[src][v], exploit)/math.Pow(matrix[src][v], explore) + 0.001
+						total += info.weight
+						weights[v] = info
 					}
-				} else {
-					for v, _ := range weights {
-						weight := P[u][v] + explore/matrix[u][v]
-						weights[v] = weight
-						total += weight
-					}
-					r := rand.Float64()
-					for v, weight := range weights {
-						r -= weight / total
-						if r < 0 {
+				}
+				r := rand.Float64()
+				x := 0.0
+				for v, info := range weights {
+					if !info.visited {
+						x += info.weight / total
+						if r <= x {
 							dest = v
 							break
 						}
 					}
 				}
 				tour[z] = dest
-				delete(weights, dest)
-				u = dest
+				weights[dest].visited = true
+				src = dest
 			}
 			c := cost(matrix, tour)
-			k := exploit / c
+			k := Q / c
 			for i := 1; i < n; i++ {
 				S[tour[i-1]][tour[i]] += k
 				S[tour[i]][tour[i-1]] += k
@@ -129,9 +135,9 @@ func aco(matrix [][]float64, G_max int, alpha, explore, exploit float64) ([]int,
 }
 
 func main() {
-	alphaPtr := flag.Float64("alpha", 0.8, "pherome evaporation rate")
+	alphaPtr := flag.Float64("alpha", 0.85, "pherome evaporation rate")
 	explorePtr := flag.Float64("explore", 20, "exploration weight")
-	exploitPtr := flag.Float64("exploit", 15, "exploitation weight")
+	exploitPtr := flag.Float64("exploit", 2.5, "exploitation weight")
 	flag.Parse()
 
 	matrix := [][]float64{}
@@ -142,7 +148,7 @@ func main() {
 	n := len(matrix)
 	tour, cost := aco(
 		matrix,
-		n*n*n*n,
+		2*n*n*n,
 		*alphaPtr,
 		*explorePtr,
 		*exploitPtr,
