@@ -2,3 +2,4 @@ anneal/anneal
 aco/aco
 results-*.txt
 res/
+anneal-sigmoid/anneal-sigmoid

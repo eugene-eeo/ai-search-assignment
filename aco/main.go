@@ -75,7 +75,7 @@ func aco(matrix [][]float64, G_max int, alpha, explore, exploit float64) ([]int,
 	for G_max > 0 {
 		G_max--
 		if (G_max % 1000) == 0 {
-			fmt.Println(G_max, best_cost)
+			fmt.Fprintln(os.Stderr, G_max, best_cost)
 		}
 
 		for ant := 0; ant < num_ants; ant++ {
