@@ -1,6 +1,7 @@
 package main
 
 import "flag"
+import "fmt"
 import "time"
 import "os"
 import "encoding/json"
@@ -66,16 +67,18 @@ func anneal(matrix Matrix, epsilon float64) ([]int, int) {
 		s[i+1], s[j+1] = s[j+1], s[i+1]
 	})
 
-	T_min := 0.00001
-	T_0 := float64(n * n)
-	k := 0.0
+	T_min := 1 - math.Pow(epsilon, 2)
+	T_0 := float64(n)
+	k := epsilon
 	T := T_0
+	g := 0
 	e := float64(cost(s, matrix))
 	next_s := ccopy(s)
 	best_s := ccopy(s)
 	best_e := e
 
 	for T > T_min {
+		g++
 		for i := 0; i < 100; i++ {
 			neighbour(next_s, s)
 			next_e := float64(cost(next_s, matrix))
@@ -92,8 +95,11 @@ func anneal(matrix Matrix, epsilon float64) ([]int, int) {
 				e = next_e
 			}
 		}
-		k++
-		T = T_0 / (1 + math.Exp(epsilon*k))
+		if g%n == 0 {
+			fmt.Fprintln(os.Stderr, T, best_e, e)
+		}
+		T = T_0 / (1 + k)
+		k += epsilon
 	}
 
 	return best_s, int(best_e)
