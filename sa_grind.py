@@ -6,20 +6,19 @@ from concurrent.futures import ThreadPoolExecutor
 from read_file import read
 
 CONFIGS = [
-    ['anneal', '-alpha=0.99999'],
-    ['anneal-sigmoid', '-epsilon=0.00001'],
+    ['anneal-sigmoid', '-epsilon=0.000005'],
 ]
 
 SIZES = [
     #('017', 100),
     #('021', 100),
-    #('026', 100),
-    #('042', 100),
-    #('048', 100),
-    #('058', 100),
-    #('175', 100),
-    ('180', 100),
-    ('535', 100),
+    ('026', 10),
+    ('042', 10),
+    ('048', 10),
+    ('058', 10),
+    ('175', 5),
+    ('180', 5),
+    ('535', 2),
 ]
 
 

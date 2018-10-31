@@ -52,6 +52,18 @@ func cost(matrix [][]float64, tour []int) float64 {
 	return d
 }
 
+func max_cost(matrix [][]float64) float64 {
+	m := 0.0
+	for _, row := range matrix {
+		for _, x := range row {
+			if x > m {
+				m = x
+			}
+		}
+	}
+	return m
+}
+
 type pair struct {
 	visited bool
 	weight  float64
@@ -61,10 +73,11 @@ func aco(matrix [][]float64, G_max int, alpha, explore, exploit float64) ([]int,
 	n := len(matrix)
 	P := pherome_matrix(matrix)
 	S := zeroes(n)
-	Q := 0.2
 	num_ants := n
 	best_tour := initial(n)
 	best_cost := cost(matrix, best_tour)
+	M := max_cost(matrix)
+	Q := best_cost
 
 	tour := make([]int, n)
 	weights := make([]pair, n)
@@ -90,7 +103,7 @@ func aco(matrix [][]float64, G_max int, alpha, explore, exploit float64) ([]int,
 				for v, info := range weights {
 					if !info.visited {
 						// + eps to alleviate 0 weight
-						info.weight = math.Pow(P[src][v], exploit)/math.Pow(matrix[src][v], explore) + 0.001
+						info.weight = math.Pow(P[src][v], exploit)*math.Pow(M/matrix[src][v], explore) + 0.0001
 						total += info.weight
 						weights[v] = info
 					}
@@ -148,7 +161,7 @@ func main() {
 	n := len(matrix)
 	tour, cost := aco(
 		matrix,
-		2*n*n*n,
+		n*n*n,
 		*alphaPtr,
 		*explorePtr,
 		*exploitPtr,
