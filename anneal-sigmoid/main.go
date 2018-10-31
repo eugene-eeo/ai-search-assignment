@@ -1,11 +1,14 @@
 package main
 
 import "flag"
+import "fmt"
 import "time"
 import "os"
 import "encoding/json"
 import "math"
 import "math/rand"
+
+var rng *rand.Rand
 
 type Matrix = [][]int
 
@@ -23,8 +26,8 @@ func neighbour(x []int, s []int) {
 	i := 1
 	j := n - 1
 	for i == 1 && j == n-1 {
-		i = 1 + rand.Intn(n-2)
-		j = (i + 1) + rand.Intn(n-(i+1))
+		i = 1 + rng.Intn(n-2)
+		j = (i + 1) + rng.Intn(n-(i+1))
 	}
 	m := (j - i) / 2
 	for k := 0; k < m; k++ {
@@ -62,7 +65,7 @@ func ccopy(x []int) []int {
 func anneal(matrix Matrix, epsilon float64) ([]int, int) {
 	n := len(matrix)
 	s := initial(n)
-	rand.Shuffle(n-1, func(i, j int) {
+	rng.Shuffle(n-1, func(i, j int) {
 		s[i+1], s[j+1] = s[j+1], s[i+1]
 	})
 
@@ -70,12 +73,14 @@ func anneal(matrix Matrix, epsilon float64) ([]int, int) {
 	T_0 := float64(n)
 	k := epsilon
 	T := T_0
+	g := 0
 	e := float64(cost(s, matrix))
 	next_s := ccopy(s)
 	best_s := ccopy(s)
 	best_e := e
 
 	for T > T_min {
+		g++
 		for i := 0; i < 100; i++ {
 			neighbour(next_s, s)
 			next_e := float64(cost(next_s, matrix))
@@ -87,10 +92,13 @@ func anneal(matrix Matrix, epsilon float64) ([]int, int) {
 				e = next_e
 				continue
 			}
-			if rand.Float64() < p(e, next_e, T) {
+			if rng.Float64() < p(e, next_e, T) {
 				copy(s, next_s)
 				e = next_e
 			}
+		}
+		if g%1000 == 0 {
+			fmt.Fprintln(os.Stderr, T, best_e)
 		}
 		T = T_0 / (1 + k)
 		k += epsilon
@@ -103,7 +111,7 @@ func main() {
 	epsPtr := flag.Float64("epsilon", 0.0001, "T_k = T_0/(1 + e^(-k*epsilon))")
 	flag.Parse()
 
-	rand.Seed(time.Now().UnixNano())
+	rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	matrix := [][]int{}
 	err := json.NewDecoder(os.Stdin).Decode(&matrix)
 	if err != nil {
