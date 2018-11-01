@@ -45,6 +45,9 @@ func cost(s []int, matrix Matrix) int {
 }
 
 func p(e, next_e, temp float64) float64 {
+	if next_e < e {
+		return 1.0
+	}
 	return math.Exp((e - next_e) / temp)
 }
 

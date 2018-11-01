@@ -1,6 +1,7 @@
 package main
 
 import "flag"
+import "fmt"
 import "time"
 import "os"
 import "encoding/json"
@@ -60,14 +61,12 @@ func ccopy(x []int) []int {
 }
 
 func anneal(matrix Matrix, alpha float64) ([]int, int) {
-	// TODO: we know the memory requirements beforehand (we only need 3
-	// arrays, s, s', and s*). So we can implement a zero-alloc version
-	// to completely subvert GC.
 	n := len(matrix)
 	s := initial(n)
 	rand.Shuffle(n-1, func(i, j int) {
 		s[i+1], s[j+1] = s[j+1], s[i+1]
 	})
+	g := 0
 
 	T_min := 0.00001
 	T := float64(n * n)
@@ -77,6 +76,7 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 	best_e := e
 
 	for T > T_min {
+		g++
 		for i := 0; i < 100; i++ {
 			neighbour(next_s, s)
 			next_e := float64(cost(next_s, matrix))
@@ -94,6 +94,9 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 			}
 		}
 		T *= alpha
+		if g%1000 == 0 {
+			fmt.Fprintln(os.Stderr, T, best_e)
+		}
 	}
 
 	return best_s, int(best_e)

@@ -3,3 +3,4 @@ aco/aco
 results-*.txt
 res/
 anneal-sigmoid/anneal-sigmoid
+anneal-hybrid/anneal-hybrid
