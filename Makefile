@@ -2,7 +2,6 @@ build:
 	cd anneal && go build && cd -
 	cd anneal-sigmoid && go build && cd -
 	cd anneal-hybrid  && go build && cd -
-	cd aco    && go build && cd -
 
 push:
 	git push origin
