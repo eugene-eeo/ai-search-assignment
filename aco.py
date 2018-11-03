@@ -9,19 +9,17 @@ def cost(matrix, tour):
     return d
 
 
-def ant(src, matrix, pheromone, alpha, beta, epsilon, t0):
+def ant(src, matrix, pheromone, beta, p, t0, p0):
     tour = [src]
     weights = {u: 0 for u in range(len(matrix)) if u != src}
     for _ in range(1, len(matrix)):
-        greedy = random.random() < 0.3
-        a = 1 if greedy else alpha
         total = 0
         for city in weights:
-            weight = (pheromone[src][city] ** a) / (matrix[src][city] ** beta)
+            weight = pheromone[src][city] / (matrix[src][city] ** beta)
             total += weight
             weights[city] = weight
         # greedily pick next city
-        if greedy:
+        if random.random() < p0:
             dst = max(weights, key=weights.__getitem__)
         else:
             r = random.random() * total
@@ -31,18 +29,29 @@ def ant(src, matrix, pheromone, alpha, beta, epsilon, t0):
                     break
         tour.append(dst)
         del weights[dst]
-        pheromone[src][dst] *= (1 - epsilon)
-        pheromone[src][dst] += epsilon * t0
+        # evaporate used trail
+        pheromone[src][dst] *= (1 - p)
+        pheromone[src][dst] += p * t0
         src = dst
     return tour
 
 
-def aco(matrix, G, alpha=1, beta=2, epsilon=0.1, p=0.2):
+def greedy(matrix):
+    tour = [0]
+    src = 0
+    for _ in range(1, len(matrix)):
+        _, dst = min((d, i) for i, d in enumerate(matrix[src]) if i not in tour)
+        src = dst
+        tour.append(dst)
+    return tour
+
+
+def aco(matrix, G, beta=2, p=0.1, p0=0.9):
     n = len(matrix)
     best = list(range(n))
     random.shuffle(best)
     best_cost = cost(matrix, best)
-    t0 = 50
+    t0 = 1 / (n * cost(matrix, greedy(matrix)))
 
     pheromone = [[0] * n for _ in range(n)]
     for i, row in enumerate(matrix):
@@ -55,19 +64,18 @@ def aco(matrix, G, alpha=1, beta=2, epsilon=0.1, p=0.2):
             tour = ant(i,
                        matrix,
                        pheromone,
-                       alpha=alpha,
                        beta=beta,
-                       epsilon=epsilon,
-                       t0=t0)
+                       p=p,
+                       t0=t0,
+                       p0=p0)
             u = cost(matrix, tour)
             if u < best_cost:
                 best = tour
                 best_cost = u
-        # update pheromone
+        # best ant updates pheromone
         for i, x in enumerate(best):
             y = best[i-1]
             pheromone[x][y] = (1 - p) * pheromone[x][y] + p / best_cost
             pheromone[y][x] = (1 - p) * pheromone[y][x] + p / best_cost
-        print(best_cost)
 
     return best, best_cost
