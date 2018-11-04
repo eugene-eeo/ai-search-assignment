@@ -2,6 +2,27 @@ import math
 import random
 
 
+def no_opt(matrix, route):
+    return route
+
+
+def two_opt(matrix, route):
+    best = route
+    improved = True
+    while improved:
+        improved = False
+        for i in range(1, len(route) - 2):
+            for j in range(i+1, len(route)):
+                if j - i == 1: continue
+                new_route = route[:]
+                new_route[i:j] = route[j-1:i-1:-1]
+                if cost(matrix, new_route) < cost(matrix, best):
+                    best = new_route
+                    improved = True
+        route = best
+    return best
+
+
 def cost(matrix, tour):
     d = 0
     for i in range(len(tour)):
@@ -40,13 +61,13 @@ def greedy(matrix):
     tour = [0]
     src = 0
     for _ in range(1, len(matrix)):
-        _, dst = min((d, i) for i, d in enumerate(matrix[src]) if i not in tour)
+        _, dst = min((cost, i) for i, cost in enumerate(matrix[src]) if i not in tour)
         src = dst
         tour.append(dst)
     return tour
 
 
-def aco(matrix, G, beta=2, p=0.1, p0=0.9):
+def aco(matrix, G, beta=2, p=0.1, p0=0.9, opt=two_opt):
     n = len(matrix)
     best = list(range(n))
     random.shuffle(best)
@@ -56,7 +77,7 @@ def aco(matrix, G, beta=2, p=0.1, p0=0.9):
     pheromone = [[0] * n for _ in range(n)]
     for i, row in enumerate(matrix):
         for j, distance in enumerate(row):
-            pheromone[i][j] = t0
+            pheromone[i][j] = t0 if i != j else None
 
     for _ in range(G):
         # simulate ants
@@ -72,6 +93,9 @@ def aco(matrix, G, beta=2, p=0.1, p0=0.9):
             if u < best_cost:
                 best = tour
                 best_cost = u
+        # local search phase
+        best = opt(matrix, best)
+        best_cost = cost(matrix, best)
         # best ant updates pheromone
         for i, x in enumerate(best):
             y = best[i-1]
