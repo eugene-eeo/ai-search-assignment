@@ -72,13 +72,16 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 
 	// DEBUG
 	g := 0
+
+	// temperature
 	k := 0.0
 	eps := 1 - alpha
-	N := float64(n / 2)
-
-	T_s := 0.0
+	T_c := 0.0
 	T_min := math.Pow(1-eps, 2)
+	N := float64(n)
 	T := float64(n * n)
+
+	// energies and states
 	e := float64(cost(s, matrix))
 	next_s := ccopy(s)
 	best_s := ccopy(s)
@@ -102,12 +105,12 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 				e = next_e
 			}
 		}
-		if T > N {
+		if T > N || T < 1 {
 			T *= alpha
-			T_s = T
+			T_c = T
 		} else {
 			k += eps
-			T = T_s / (1 + k)
+			T = T_c / (1 + k)
 		}
 		if g%1000 == 0 {
 			fmt.Fprintln(os.Stderr, T, best_e)
