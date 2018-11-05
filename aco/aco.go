@@ -1,6 +1,5 @@
 package main
 
-import "time"
 import "fmt"
 import "flag"
 import "os"
@@ -155,13 +154,9 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]
 
 	tour := make([]int, n)
 	weights := make(map[int]float64, n)
-	// DEBUG PERF
-	debug_t0 := time.Now()
 	for G > 0 {
-		if G%100 == 0 {
-			debug_t1 := time.Now()
-			fmt.Fprintln(os.Stderr, G, best_cost, debug_t1.Sub(debug_t0))
-			debug_t0 = debug_t1
+		if G%10 == 0 {
+			fmt.Fprintln(os.Stderr, G, best_cost, it_best_cost)
 		}
 		G--
 		for src := 0; src < m; src++ {
