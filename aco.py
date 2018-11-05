@@ -2,10 +2,6 @@ import math
 import random
 
 
-def no_opt(matrix, route):
-    return route
-
-
 def two_opt(matrix, route):
     best = route
     improved = True
@@ -53,6 +49,8 @@ def ant(src, matrix, pheromone, beta, p, t0, p0):
         # evaporate used trail
         pheromone[src][dst] *= (1 - p)
         pheromone[src][dst] += p * t0
+        pheromone[dst][src] *= (1 - p)
+        pheromone[dst][src] += p * t0
         src = dst
     return tour
 
@@ -67,11 +65,9 @@ def greedy(matrix):
     return tour
 
 
-def aco(matrix, G, beta=2, p=0.1, p0=0.9, opt=two_opt):
+def aco(matrix, G, m=None, beta=2, p=0.1, p0=0.9):
     n = len(matrix)
-    best = list(range(n))
-    random.shuffle(best)
-    best_cost = cost(matrix, best)
+    m = n if m is None else m
     t0 = 1 / (n * cost(matrix, greedy(matrix)))
 
     pheromone = [[0] * n for _ in range(n)]
@@ -79,9 +75,13 @@ def aco(matrix, G, beta=2, p=0.1, p0=0.9, opt=two_opt):
         for j, distance in enumerate(row):
             pheromone[i][j] = t0 if i != j else None
 
+    best = list(range(n))
+    random.shuffle(best)
+    best_cost = cost(matrix, best)
+
     for _ in range(G):
         # simulate ants
-        for i in range(n):
+        for i in range(m):
             tour = ant(i,
                        matrix,
                        pheromone,
@@ -94,12 +94,14 @@ def aco(matrix, G, beta=2, p=0.1, p0=0.9, opt=two_opt):
                 best = tour
                 best_cost = u
         # local search phase
-        best = opt(matrix, best)
+        best = two_opt(matrix, best)
         best_cost = cost(matrix, best)
-        # best ant updates pheromone
+        # best ant deposits pheromone
         for i, x in enumerate(best):
             y = best[i-1]
-            pheromone[x][y] = (1 - p) * pheromone[x][y] + p / best_cost
-            pheromone[y][x] = (1 - p) * pheromone[y][x] + p / best_cost
+            pheromone[x][y] *= (1 - p)
+            pheromone[y][x] *= (1 - p)
+            pheromone[x][y] += p / best_cost
+            pheromone[y][x] += p / best_cost
 
     return best, best_cost
