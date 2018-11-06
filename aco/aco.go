@@ -48,58 +48,64 @@ func two_opt(matrix [][]int, tour []int) {
 	}
 }
 
-func max_weight(weights map[int]float64) int {
+func max_weight(infos []*cityInfo) int {
 	best := 0
 	best_weight := 0.0
-	for city, weight := range weights {
-		if weight > best_weight {
+	for city, info := range infos {
+		if !info.visited && info.weight > best_weight {
 			best = city
-			best_weight = weight
+			best_weight = info.weight
 		}
 	}
 	return best
 }
 
-func choose_weighted(weights map[int]float64, total float64) int {
+func choose_weighted(infos []*cityInfo, total float64) int {
 	for {
 		r := rand.Float64() * total
-		for dst, weight := range weights {
-			r -= weight
-			if r < 0 {
-				return dst
+		for dst, info := range infos {
+			if !info.visited {
+				r -= info.weight
+				if r < 0 {
+					return dst
+				}
 			}
 		}
 	}
 }
 
+type cityInfo struct {
+	weight  float64
+	visited bool
+}
+
 func ant(
 	src int,
-	tour []int, weights map[int]float64, // can be shared with other ants
+	tour []int, infos []*cityInfo, // can be shared with other ants
 	matrix [][]int, pheromone [][]float64, // problem specific components
 	beta, p_greedy, t0, rho float64, // parameters
 ) []int {
-	for i := 0; i < len(matrix); i++ {
-		if i != src {
-			weights[i] = 0
-		}
-	}
+	// initialize tour and infos
 	tour[0] = src
-	delete(weights, src)
+	for i := 0; i < len(matrix); i++ {
+		infos[i].visited = i == src
+	}
 	for i := 1; i < len(matrix); i++ {
 		total := 0.0
-		for city, _ := range weights {
-			weight := pheromone[src][city] / math.Pow(float64(matrix[src][city]), 2)
-			total += weight
-			weights[city] = weight
+		for city, info := range infos {
+			if !info.visited {
+				info.weight = pheromone[src][city] / math.Pow(float64(matrix[src][city]), beta)
+				total += info.weight
+			}
 		}
 		dst := src
 		if rand.Float64() < p_greedy {
-			dst = max_weight(weights)
+			dst = max_weight(infos)
 		} else {
-			dst = choose_weighted(weights, total)
+			dst = choose_weighted(infos, total)
 		}
 		tour[i] = dst
-		delete(weights, dst)
+		infos[dst].visited = true
 		pheromone[src][dst] = (1-rho)*pheromone[src][dst] + rho*t0
 		pheromone[dst][src] = (1-rho)*pheromone[dst][src] + rho*t0
 		src = dst
@@ -138,11 +144,7 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]
 	for i := 0; i < n; i++ {
 		pheromone[i] = make([]float64, n)
 		for j := 0; j < n; j++ {
-			if j == i {
-				pheromone[i][j] = 0
-			} else {
-				pheromone[i][j] = t0
-			}
+			pheromone[i][j] = t0
 		}
 	}
 
@@ -151,7 +153,11 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]
 	copy(it_best, best)
 
 	tour := make([]int, n)
-	weights := make(map[int]float64, n)
+	infos := make([]*cityInfo, n)
+	for i := 0; i < n; i++ {
+		infos[i] = &cityInfo{}
+	}
+
 	for G > 0 {
 		if G%10 == 0 {
 			fmt.Fprintln(os.Stderr, G, best_cost, it_best_cost)
@@ -159,7 +165,7 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]
 		G--
 		for src := 0; src < m; src++ {
 			ant(src,
-				tour, weights,
+				tour, infos,
 				matrix, pheromone,
 				beta, p_greedy, t0, rho)
 			u := cost(matrix, tour)
