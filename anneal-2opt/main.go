@@ -16,8 +16,10 @@ type Path struct {
 }
 
 func reverse(x []int, i, j int) {
-	for left, right := i, j; left < right; left, right = left+1, right-1 {
-		x[left], x[right] = x[right], x[left]
+	for i < j {
+		x[i], x[j] = x[j], x[i]
+		i++
+		j--
 	}
 }
 
