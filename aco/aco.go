@@ -61,6 +61,13 @@ func max_weight(infos []*cityInfo) int {
 }
 
 func choose_weighted(infos []*cityInfo, total float64) int {
+	if math.IsInf(total, +1) {
+		for dst, info := range infos {
+			if !info.visited {
+				return dst
+			}
+		}
+	}
 	for {
 		r := rand.Float64() * total
 		for dst, info := range infos {
@@ -110,6 +117,7 @@ func ant(
 		pheromone[dst][src] = (1-rho)*pheromone[dst][src] + rho*t0
 		src = dst
 	}
+	two_opt(matrix, tour)
 	return tour
 }
 
@@ -137,7 +145,7 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]
 	m := n / 2
 	best := nearest_neighbour(matrix)
 	best_cost := cost(matrix, best)
-	t0 := 1 / float64(n*best_cost)
+	t0 := 1 / (float64(n) * float64(best_cost))
 
 	// Create pheromone matrix with initial value t0
 	pheromone := make([][]float64, n)
@@ -159,11 +167,9 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]
 	}
 
 	for G > 0 {
-		if G%10 == 0 {
-			fmt.Fprintln(os.Stderr, G, best_cost, it_best_cost)
-		}
+		fmt.Fprintln(os.Stderr, G, best_cost, it_best_cost)
 		G--
-		for src := 0; src < m; src++ {
+		for i := 0; i < m; i++ {
 			ant(tour, infos,
 				matrix, pheromone,
 				beta, p_greedy, t0, rho)
@@ -172,16 +178,10 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]
 				copy(best, tour)
 				best_cost = u
 			}
-			if src == 0 || u < it_best_cost {
+			if i == 0 || u < it_best_cost {
 				copy(it_best, tour)
 				it_best_cost = u
 			}
-		}
-		two_opt(matrix, it_best)
-		it_best_cost = cost(matrix, it_best)
-		if it_best_cost < best_cost {
-			copy(best, it_best)
-			best_cost = it_best_cost
 		}
 		gb := it_best
 		bc := it_best_cost
