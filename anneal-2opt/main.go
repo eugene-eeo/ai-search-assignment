@@ -23,31 +23,29 @@ func reverse(x []int, i, j int) {
 	}
 }
 
-func two_opt(matrix [][]int, tour []int) int {
-	tour_cost := cost(tour, matrix)
-	route := make([]int, len(tour))
-	improved := true
-	for improved {
-		improved = false
-		for i := 1; i < len(tour)-2; i++ {
-			for j := i + 1; j < len(tour); j++ {
-				if j-i == 1 {
-					continue
-				}
-				copy(route, tour)
-				reverse(route, i, j)
-				c := cost(route, matrix)
-				if c < tour_cost {
-					tour_cost = c
-					copy(tour, route)
-					improved = true
+func two_opt(matrix [][]int, tour []int) {
+	n := len(tour)
+	minchange := -1
+	for minchange < 0 {
+		minchange = 0
+		min_i := -1
+		min_j := -1
+		for i := 0; i < n-2; i++ {
+			for j := i + 2; j < n; j++ {
+				j_1 := (j + 1) % n
+				change := matrix[tour[i]][tour[j]] + matrix[tour[i+1]][tour[j_1]] - matrix[tour[i]][tour[i+1]] - matrix[tour[j]][tour[j_1]]
+				if change < minchange {
+					minchange = change
+					min_i = i
+					min_j = j
 				}
 			}
 		}
-		// Iterate on best found
-		copy(route, tour)
+		if min_i != -1 {
+			j_1 := (min_j + 1) % n
+			tour[min_i], tour[min_i+1], tour[min_j], tour[j_1] = tour[min_i], tour[min_j], tour[min_i+1], tour[j_1]
+		}
 	}
-	return tour_cost
 }
 
 func neighbour(x []int, s []int) {
@@ -122,7 +120,8 @@ func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
 		}
 		for i := 0; i < 100; i++ {
 			neighbour(next_s, s)
-			next_e := float64(two_opt(matrix, next_s))
+			two_opt(matrix, next_s)
+			next_e := float64(cost(next_s, matrix))
 			// if next_e < best_e then necessarily we have r() < p(...)
 			if next_e < best_e {
 				copy(best_s, next_s)

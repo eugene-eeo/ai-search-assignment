@@ -23,28 +23,30 @@ func reverse(x []int, i, j int) {
 }
 
 func two_opt(matrix [][]int, tour []int) {
-	tour_cost := cost(matrix, tour)
-	route := make([]int, len(tour))
-	improved := true
-	for improved {
-		improved = false
-		for i := 1; i < len(tour)-2; i++ {
-			for j := i + 1; j < len(tour); j++ {
-				if j-i == 1 {
-					continue
-				}
-				copy(route, tour)
-				reverse(route, i, j)
-				c := cost(matrix, route)
-				if c < tour_cost {
-					tour_cost = c
-					copy(tour, route)
-					improved = true
+	// Goal: to find the pair of edges (i,i+1) and (j,j+1) s.t.
+	// replacing them with (i,j) and (i+1,j+1) produces a tour
+	// of smaller cost.
+	n := len(tour)
+	minchange := -1
+	for minchange < 0 {
+		minchange = 0
+		min_i := -1
+		min_j := -1
+		for i := 0; i < n-2; i++ {
+			for j := i + 2; j < n; j++ {
+				j_1 := (j + 1) % n
+				change := matrix[tour[i]][tour[j]] + matrix[tour[i+1]][tour[j_1]] - matrix[tour[i]][tour[i+1]] - matrix[tour[j]][tour[j_1]]
+				if change < minchange {
+					minchange = change
+					min_i = i
+					min_j = j
 				}
 			}
 		}
-		// Iterate on best found
-		copy(route, tour)
+		if min_i != -1 {
+			j_1 := (min_j + 1) % n
+			tour[min_i], tour[min_i+1], tour[min_j], tour[j_1] = tour[min_i], tour[min_j], tour[min_i+1], tour[j_1]
+		}
 	}
 }
 
