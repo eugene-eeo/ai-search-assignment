@@ -9,8 +9,12 @@ def main():
     min_tour = []
     costs = []
 
-    for line in sys.stdin:
-        d = json.loads(line)
+    for i, line in enumerate(sys.stdin):
+        try:
+            d = json.loads(line)
+        except:
+            print(i)
+            exit()
         cost = d['cost']
         tour = d['tour']
         costs.append(cost)

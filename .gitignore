@@ -4,3 +4,4 @@ results-*.txt
 res/
 anneal-sigmoid/anneal-sigmoid
 anneal-hybrid/anneal-hybrid
+anneal-2opt/anneal-2opt

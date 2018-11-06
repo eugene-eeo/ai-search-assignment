@@ -1,5 +1,6 @@
 package main
 
+import "fmt"
 import "flag"
 import "time"
 import "os"
@@ -14,6 +15,38 @@ type Path struct {
 	Cost int   `json:"cost"`
 }
 
+func reverse(x []int, i, j int) {
+	for left, right := i, j; left < right; left, right = left+1, right-1 {
+		x[left], x[right] = x[right], x[left]
+	}
+}
+
+func two_opt(matrix [][]int, tour []int) {
+	tour_cost := cost(tour, matrix)
+	route := make([]int, len(tour))
+	improved := true
+	for improved {
+		improved = false
+		for i := 1; i < len(tour)-2; i++ {
+			for j := i + 1; j < len(tour); j++ {
+				if j-i == 1 {
+					continue
+				}
+				copy(route, tour)
+				reverse(route, i, j)
+				c := cost(route, matrix)
+				if c < tour_cost {
+					tour_cost = c
+					copy(tour, route)
+					improved = true
+				}
+			}
+		}
+		// Iterate on best found
+		copy(route, tour)
+	}
+}
+
 func neighbour(x []int, s []int) {
 	copy(x, s)
 	// Observations:
@@ -26,10 +59,7 @@ func neighbour(x []int, s []int) {
 		i = 1 + rand.Intn(n-2)
 		j = (i + 1) + rand.Intn(n-(i+1))
 	}
-	m := (j - i) / 2
-	for k := 0; k < m; k++ {
-		x[i+k], x[j-k] = x[j-k], x[i+k]
-	}
+	reverse(x, i, j)
 }
 
 func cost(s []int, matrix Matrix) int {
@@ -62,7 +92,7 @@ func ccopy(x []int) []int {
 	return s
 }
 
-func anneal(matrix Matrix, alpha float64) ([]int, int) {
+func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
 	n := len(matrix)
 	s := initial(n)
 	rand.Shuffle(n-1, func(i, j int) {
@@ -83,9 +113,16 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 	best_s := ccopy(s)
 	best_e := e
 
+	g := 0
+
 	for T > T_min {
+		g++
+		if g%debugFreq == 0 {
+			fmt.Fprintln(os.Stderr, g, T, best_e)
+		}
 		for i := 0; i < 100; i++ {
 			neighbour(next_s, s)
+			two_opt(matrix, next_s)
 			next_e := float64(cost(next_s, matrix))
 			// if next_e < best_e then necessarily we have r < p(...)
 			if next_e < best_e {
@@ -115,6 +152,7 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 
 func main() {
 	alphaPtr := flag.Float64("alpha", 0.99670, "T *= alpha")
+	fPtr := flag.Int("f", 10, "debug frequency")
 	flag.Parse()
 
 	rand.Seed(time.Now().UnixNano())
@@ -125,7 +163,7 @@ func main() {
 	}
 
 	// actually do annealing
-	tour, cost := anneal(matrix, *alphaPtr)
+	tour, cost := anneal(matrix, *alphaPtr, *fPtr)
 	w := json.NewEncoder(os.Stdout)
 	w.Encode(Path{
 		Tour: tour,

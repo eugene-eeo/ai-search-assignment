@@ -100,10 +100,8 @@ func ant(
 		}
 		tour[i] = dst
 		delete(weights, dst)
-		pheromone[src][dst] *= (1 - rho)
-		pheromone[dst][src] *= (1 - rho)
-		pheromone[src][dst] += rho * t0
-		pheromone[dst][src] += rho * t0
+		pheromone[src][dst] = (1-rho)*pheromone[src][dst] + rho*t0
+		pheromone[dst][src] = (1-rho)*pheromone[dst][src] + rho*t0
 		src = dst
 	}
 	return tour
