@@ -80,12 +80,12 @@ type cityInfo struct {
 }
 
 func ant(
-	src int,
 	tour []int, infos []*cityInfo, // can be shared with other ants
 	matrix [][]int, pheromone [][]float64, // problem specific components
 	beta, p_greedy, t0, rho float64, // parameters
 ) []int {
 	// initialize tour and infos
+	src := rand.Intn(len(matrix))
 	tour[0] = src
 	for i := 0; i < len(matrix); i++ {
 		infos[i].visited = i == src
@@ -164,8 +164,7 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]
 		}
 		G--
 		for src := 0; src < m; src++ {
-			ant(src,
-				tour, infos,
+			ant(tour, infos,
 				matrix, pheromone,
 				beta, p_greedy, t0, rho)
 			u := cost(matrix, tour)
