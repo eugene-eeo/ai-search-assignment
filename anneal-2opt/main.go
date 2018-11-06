@@ -21,7 +21,7 @@ func reverse(x []int, i, j int) {
 	}
 }
 
-func two_opt(matrix [][]int, tour []int) {
+func two_opt(matrix [][]int, tour []int) int {
 	tour_cost := cost(tour, matrix)
 	route := make([]int, len(tour))
 	improved := true
@@ -45,6 +45,7 @@ func two_opt(matrix [][]int, tour []int) {
 		// Iterate on best found
 		copy(route, tour)
 	}
+	return tour_cost
 }
 
 func neighbour(x []int, s []int) {
@@ -72,9 +73,6 @@ func cost(s []int, matrix Matrix) int {
 }
 
 func p(e, next_e, temp float64) float64 {
-	if next_e < e {
-		return 1
-	}
 	return math.Exp((e - next_e) / temp)
 }
 
@@ -122,17 +120,16 @@ func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
 		}
 		for i := 0; i < 100; i++ {
 			neighbour(next_s, s)
-			two_opt(matrix, next_s)
-			next_e := float64(cost(next_s, matrix))
-			// if next_e < best_e then necessarily we have r < p(...)
+			next_e := float64(two_opt(matrix, next_s))
+			// if next_e < best_e then necessarily we have r() < p(...)
 			if next_e < best_e {
 				copy(best_s, next_s)
-				best_e = next_e
 				copy(s, next_s)
+				best_e = next_e
 				e = next_e
 				continue
 			}
-			if rand.Float64() < p(e, next_e, T) {
+			if next_e < e || rand.Float64() < p(e, next_e, T) {
 				copy(s, next_s)
 				e = next_e
 			}
