@@ -52,17 +52,10 @@ func two_opt(matrix [][]int, tour []int) int {
 
 func neighbour(x []int, s []int) {
 	copy(x, s)
-	// Observations:
-	//  - cost((1,2,3)) = cost((2,3,1)) = cost((3,1,2)), so first city can be fixed.
-	//  - cost((1,2,3)) = cost((3,2,1)), so reverse order is the same cost.
 	n := len(s)
-	i := 1
-	j := n - 1
-	for i == 1 && j == n-1 {
-		i = 1 + rand.Intn(n-2)
-		j = (i + 1) + rand.Intn(n-(i+1))
-	}
-	reverse(x, i, j)
+	i := 1 + rand.Intn(n-2)
+	j := (i + 1) + rand.Intn(n-(i+1))
+	x[i], x[j] = x[j], x[i]
 }
 
 func cost(s []int, matrix Matrix) int {
@@ -95,20 +88,17 @@ func ccopy(x []int) []int {
 func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
 	n := len(matrix)
 	s := initial(n)
-	rand.Shuffle(n-1, func(i, j int) {
-		s[i+1], s[j+1] = s[j+1], s[i+1]
-	})
+	two_opt(matrix, s)
+	e := float64(cost(s, matrix))
 
 	// temperature
 	k := 0.0
 	eps := 1 - alpha
-	T_c := 0.0
 	T_min := math.Pow(1-eps, 2)
-	N := float64(n)
-	T := float64(n * n)
+	T := 0.5 * e
+	T0 := T
 
 	// energies and states
-	e := float64(cost(s, matrix))
 	next_s := ccopy(s)
 	best_s := ccopy(s)
 	best_e := e
@@ -120,7 +110,7 @@ func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
 		if g%debugFreq == 0 {
 			fmt.Fprintln(os.Stderr, g, T, best_e)
 		}
-		for i := 0; i < 100; i++ {
+		for i := 0; i < 10; i++ {
 			neighbour(next_s, s)
 			next_e := float64(two_opt(matrix, next_s))
 			// if next_e < best_e then necessarily we have r() < p(...)
@@ -137,12 +127,11 @@ func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
 			}
 		}
 		// Geometric schedule
-		if T > N || T < 1 {
+		if T < 1 {
 			T *= alpha
-			T_c = T
 		} else {
 			k += eps
-			T = T_c / (1 + k)
+			T = T0 / (1 + k)
 		}
 	}
 
