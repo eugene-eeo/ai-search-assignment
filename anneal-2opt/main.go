@@ -53,9 +53,13 @@ func two_opt(matrix [][]int, tour []int) int {
 func neighbour(x []int, s []int) {
 	copy(x, s)
 	n := len(s)
-	i := 1 + rand.Intn(n-2)
-	j := (i + 1) + rand.Intn(n-(i+1))
-	x[i], x[j] = x[j], x[i]
+	i := 1
+	j := n - 1
+	for i == 1 && j == n-1 {
+		i = 1 + rand.Intn(n-2)
+		j = (i + 1) + rand.Intn(n-(i+1))
+	}
+	reverse(x, i, j)
 }
 
 func cost(s []int, matrix Matrix) int {
@@ -86,30 +90,38 @@ func ccopy(x []int) []int {
 }
 
 func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
-	n := len(matrix)
-	s := initial(n)
-	two_opt(matrix, s)
-	e := float64(cost(s, matrix))
-
-	// temperature
-	k := 0.0
-	eps := 1 - alpha
-	T_min := math.Pow(1-eps, 2)
-	T := 0.5 * e
-	T0 := T
+	s := initial(len(matrix))
+	rand.Shuffle(len(matrix)-1, func(i, j int) {
+		s[i+1], s[j+1] = s[j+1], s[i+1]
+	})
 
 	// energies and states
+	e := float64(cost(s, matrix))
 	next_s := ccopy(s)
 	best_s := ccopy(s)
 	best_e := e
 
+	T := 0.0
+	for i := 0; i < len(matrix); i++ {
+		neighbour(next_s, s)
+		c := float64(cost(next_s, matrix))
+		if c > T {
+			T = c
+		}
+	}
+
+	// temperature
 	g := 0
+	k := 0.0
+	eps := 1 - alpha
+	T_min := math.Pow(1-eps, 2)
+	T0 := T
 
 	for T > T_min {
-		g++
 		if g%debugFreq == 0 {
 			fmt.Fprintln(os.Stderr, g, T, best_e)
 		}
+		g++
 		for i := 0; i < 10; i++ {
 			neighbour(next_s, s)
 			next_e := float64(two_opt(matrix, next_s))
