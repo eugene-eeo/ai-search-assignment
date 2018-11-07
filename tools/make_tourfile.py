@@ -1,6 +1,5 @@
 import sys
 import json
-import statistics
 
 
 def main():
@@ -15,7 +14,10 @@ def main():
             min_cost = cost
             min_tour = tour
 
-    print("")
+    print("NAME = AISearchFile{:03}".format(len(min_tour)))
+    print("TOURSIZE = {}".format(len(min_tour)))
+    print("LENGTH = {}".format(min_cost))
+    print(",".join(str(k) for k in min_tour))
 
 
 if __name__ == '__main__':
