@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
 import "flag"
+import "fmt"
 import "time"
 import "os"
 import "encoding/json"
@@ -89,18 +89,20 @@ func ccopy(x []int) []int {
 	return s
 }
 
-func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
+func anneal(matrix Matrix, alpha float64) ([]int, int) {
 	s := initial(len(matrix))
 	rand.Shuffle(len(matrix)-1, func(i, j int) {
 		s[i+1], s[j+1] = s[j+1], s[i+1]
 	})
 
 	// energies and states
+	g := 0
 	e := float64(cost(s, matrix))
 	next_s := ccopy(s)
 	best_s := ccopy(s)
 	best_e := float64(cost(s, matrix))
 
+	//T := float64(len(matrix))
 	T := 0.0
 	for i := 0; i < len(matrix); i++ {
 		neighbour(next_s, s)
@@ -111,17 +113,14 @@ func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
 	}
 
 	// temperature
-	g := 0
 	k := 0.0
 	eps := 1 - alpha
-	T_min := math.Pow(1-eps, 2)
+	T_min := 0.0001
 	T0 := T
 
 	for T > T_min {
-		if g%debugFreq == 0 {
-			fmt.Fprintln(os.Stderr, g, T, best_e)
-		}
 		g++
+		fmt.Fprintln(os.Stderr, T, best_e)
 		for i := 0; i < 10; i++ {
 			neighbour(next_s, s)
 			next_e := float64(two_opt(matrix, next_s))
@@ -135,7 +134,7 @@ func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
 			}
 		}
 		// Geometric schedule
-		if T < 1 {
+		if T < 5 {
 			T *= alpha
 		} else {
 			k += eps
@@ -148,7 +147,7 @@ func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
 
 func main() {
 	alphaPtr := flag.Float64("alpha", 0.99670, "T *= alpha")
-	fPtr := flag.Int("f", 10, "debug frequency")
+	//fPtr := flag.Int("f", 10, "debug frequency")
 	flag.Parse()
 
 	rand.Seed(time.Now().UnixNano())
@@ -159,7 +158,7 @@ func main() {
 	}
 
 	// actually do annealing
-	tour, cost := anneal(matrix, *alphaPtr, *fPtr)
+	tour, cost := anneal(matrix, *alphaPtr)
 	w := json.NewEncoder(os.Stdout)
 	w.Encode(Path{
 		Tour: tour,

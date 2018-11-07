@@ -6,12 +6,12 @@ from concurrent.futures import ThreadPoolExecutor
 from read_file import read
 
 CONFIGS = [
-    ['anneal-2opt', '-alpha=0.9'],
+    ['anneal-2opt', '-alpha=0.75'],
 ]
 
 SIZES = [
-    ('048', 20),
-    ('058', 20),
+    #('048', 20),
+    #('058', 20),
     ('175', 5),
     ('180', 5),
     ('535', 1),
