@@ -99,7 +99,7 @@ func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
 	e := float64(cost(s, matrix))
 	next_s := ccopy(s)
 	best_s := ccopy(s)
-	best_e := e
+	best_e := float64(cost(s, matrix))
 
 	T := 0.0
 	for i := 0; i < len(matrix); i++ {
@@ -121,17 +121,17 @@ func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
 		if g%debugFreq == 0 {
 			fmt.Fprintln(os.Stderr, g, T, best_e)
 		}
+		if rand.Float64() < 1/math.Pow(T, 2.0) {
+			copy(s, best_s)
+			e = best_e
+		}
 		g++
 		for i := 0; i < 10; i++ {
 			neighbour(next_s, s)
 			next_e := float64(two_opt(matrix, next_s))
-			// if next_e < best_e then necessarily we have r() < p(...)
 			if next_e < best_e {
 				copy(best_s, next_s)
-				copy(s, next_s)
 				best_e = next_e
-				e = next_e
-				continue
 			}
 			if next_e < e || rand.Float64() < p(e, next_e, T) {
 				copy(s, next_s)
@@ -139,7 +139,7 @@ func anneal(matrix Matrix, alpha float64, debugFreq int) ([]int, int) {
 			}
 		}
 		// Geometric schedule
-		if T < 1 {
+		if T < 5 {
 			T *= alpha
 		} else {
 			k += eps
