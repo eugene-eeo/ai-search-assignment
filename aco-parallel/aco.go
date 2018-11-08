@@ -84,39 +84,39 @@ type cityInfo struct {
 	visited bool
 }
 
-func ant(
-	tour []int, infos []*cityInfo, // can be shared with other ants
-	matrix [][]int, pheromone [][]float64, // problem specific components
-	beta, p_greedy, t0, rho float64, // parameters
-) []int {
-	// initialize tour and infos
-	src := rand.Intn(len(matrix))
-	tour[0] = src
-	for i := 0; i < len(matrix); i++ {
-		infos[i].visited = i == src
-	}
-	for i := 1; i < len(matrix); i++ {
-		total := 0.0
-		for city, info := range infos {
-			if !info.visited {
-				info.weight = pheromone[src][city] / math.Pow(float64(matrix[src][city]), beta)
-				total += info.weight
-			}
+func update_ant(
+	i int,
+	tour []int, infos []*cityInfo,
+	matrix [][]int, pheromone [][]float64,
+	beta, p_greedy, t0, rho float64,
+) {
+	if i == 0 {
+		// initialize tour and infos
+		src := rand.Intn(len(matrix))
+		tour[i] = src
+		for j := 0; j < len(matrix); j++ {
+			infos[j].visited = j == src
 		}
-		dst := src
-		if rand.Float64() < p_greedy {
-			dst = max_weight(infos)
-		} else {
-			dst = choose_weighted(infos, total)
-		}
-		tour[i] = dst
-		infos[dst].visited = true
-		pheromone[src][dst] = (1-rho)*pheromone[src][dst] + rho*t0
-		pheromone[dst][src] = (1-rho)*pheromone[dst][src] + rho*t0
-		src = dst
+		return
 	}
-	two_opt(tour, matrix)
-	return tour
+	src := tour[i-1]
+	total := 0.0
+	for city, info := range infos {
+		if !info.visited {
+			info.weight = pheromone[src][city] / math.Pow(float64(matrix[src][city]), beta)
+			total += info.weight
+		}
+	}
+	dst := src
+	if rand.Float64() < p_greedy {
+		dst = max_weight(infos)
+	} else {
+		dst = choose_weighted(infos, total)
+	}
+	tour[i] = dst
+	infos[dst].visited = true
+	pheromone[src][dst] = (1-rho)*pheromone[src][dst] + rho*t0
+	pheromone[dst][src] = (1-rho)*pheromone[dst][src] + rho*t0
 }
 
 func nearest_neighbour(matrix [][]int) []int {
@@ -140,7 +140,7 @@ func nearest_neighbour(matrix [][]int) []int {
 
 func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]int, int) {
 	n := len(matrix)
-	m := n / 2
+	m := 20
 	best := nearest_neighbour(matrix)
 	best_cost := cost(matrix, best)
 	t0 := 1 / (float64(n) * float64(best_cost))
@@ -154,30 +154,39 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]
 		}
 	}
 
+	tours := make([][]int, m)
+	infos := make([][]*cityInfo, m)
+
+	for i := 0; i < m; i++ {
+		tours[i] = make([]int, n)
+		infos[i] = make([]*cityInfo, n)
+		for j := 0; j < n; j++ {
+			infos[i][j] = &cityInfo{}
+		}
+	}
+
 	it_best := make([]int, n)
 	it_best_cost := best_cost
 	copy(it_best, best)
 
-	tour := make([]int, n)
-	infos := make([]*cityInfo, n)
-	for i := 0; i < n; i++ {
-		infos[i] = &cityInfo{}
-	}
-
 	for G > 0 {
 		fmt.Fprintln(os.Stderr, G, best_cost, it_best_cost)
 		G--
+		// step each ant forward
+		for i := 0; i < n; i++ {
+			for j := 0; j < m; j++ {
+				update_ant(i, tours[j], infos[j], matrix, pheromone, beta, p_greedy, t0, rho)
+			}
+		}
+		// optimise tours and find it_best or global best
 		for i := 0; i < m; i++ {
-			ant(tour, infos,
-				matrix, pheromone,
-				beta, p_greedy, t0, rho)
-			u := cost(matrix, tour)
+			u := two_opt(tours[i], matrix)
 			if u < best_cost {
-				copy(best, tour)
+				copy(best, tours[i])
 				best_cost = u
 			}
 			if i == 0 || u < it_best_cost {
-				copy(it_best, tour)
+				copy(it_best, tours[i])
 				it_best_cost = u
 			}
 		}

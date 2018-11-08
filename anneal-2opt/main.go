@@ -23,9 +23,8 @@ func reverse(x []int, i, j int) {
 	}
 }
 
-func two_opt(matrix [][]int, tour []int) int {
+func two_opt(tour []int, matrix [][]int) int {
 	tour_cost := cost(tour, matrix)
-	route := make([]int, len(tour))
 	improved := true
 	for improved {
 		improved = false
@@ -34,18 +33,16 @@ func two_opt(matrix [][]int, tour []int) int {
 				if j-i == 1 {
 					continue
 				}
-				copy(route, tour)
-				reverse(route, i, j)
-				c := cost(route, matrix)
+				reverse(tour, i, j)
+				c := cost(tour, matrix)
 				if c < tour_cost {
 					tour_cost = c
-					copy(tour, route)
 					improved = true
+				} else {
+					reverse(tour, i, j)
 				}
 			}
 		}
-		// Iterate on best found
-		copy(route, tour)
 	}
 	return tour_cost
 }
@@ -102,15 +99,15 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 	best_s := ccopy(s)
 	best_e := float64(cost(s, matrix))
 
-	//T := float64(len(matrix))
-	T := 0.0
-	for i := 0; i < len(matrix); i++ {
-		neighbour(next_s, s)
-		c := float64(cost(next_s, matrix))
-		if c > T {
-			T = c
-		}
-	}
+	T := float64(len(matrix))
+	//T := 0.0
+	//for i := 0; i < len(matrix); i++ {
+	//	neighbour(next_s, s)
+	//	c := float64(cost(next_s, matrix))
+	//	if c > T {
+	//		T = c
+	//	}
+	//}
 
 	// temperature
 	k := 0.0
@@ -121,17 +118,15 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 	for T > T_min {
 		g++
 		fmt.Fprintln(os.Stderr, T, best_e)
-		for i := 0; i < 10; i++ {
-			neighbour(next_s, s)
-			next_e := float64(two_opt(matrix, next_s))
-			if next_e < best_e {
-				copy(best_s, next_s)
-				best_e = next_e
-			}
-			if next_e < e || rand.Float64() < p(e, next_e, T) {
-				copy(s, next_s)
-				e = next_e
-			}
+		neighbour(next_s, s)
+		next_e := float64(two_opt(next_s, matrix))
+		if next_e < best_e {
+			copy(best_s, next_s)
+			best_e = next_e
+		}
+		if next_e < e || rand.Float64() < p(e, next_e, T) {
+			copy(s, next_s)
+			e = next_e
 		}
 		// Geometric schedule
 		if T < 5 {
@@ -142,6 +137,7 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 		}
 	}
 
+	best_e = float64(two_opt(best_s, matrix))
 	return best_s, int(best_e)
 }
 
