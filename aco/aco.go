@@ -140,7 +140,7 @@ func nearest_neighbour(matrix [][]int) []int {
 
 func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]int, int) {
 	n := len(matrix)
-	m := n / 2
+	m := 20
 	best := nearest_neighbour(matrix)
 	best_cost := cost(matrix, best)
 	t0 := 1 / (float64(n) * float64(best_cost))

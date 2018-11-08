@@ -91,11 +91,11 @@ func update_ant(
 	beta, p_greedy, t0, rho float64,
 ) {
 	if i == 0 {
-		// initialize tour and infos
-		src := rand.Intn(len(matrix))
-		tour[i] = src
-		for j := 0; j < len(matrix); j++ {
-			infos[j].visited = j == src
+		// initialize tour and infos;
+		// start from 0 for all tours
+		tour[i] = 0
+		for j := 1; j < len(matrix); j++ {
+			infos[j].visited = false
 		}
 		return
 	}
