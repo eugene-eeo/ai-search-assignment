@@ -90,12 +90,13 @@ func ant(
 	beta, p_greedy, t0, rho float64, // parameters
 ) []int {
 	// initialize tour and infos
-	src := rand.Intn(len(matrix))
+	n := len(matrix)
+	src := rand.Intn(n)
 	tour[0] = src
-	for i := 0; i < len(matrix); i++ {
+	for i := 0; i < n; i++ {
 		infos[i].visited = i == src
 	}
-	for i := 1; i < len(matrix); i++ {
+	for i := 1; i < n; i++ {
 		total := 0.0
 		for city, info := range infos {
 			if !info.visited {
@@ -115,6 +116,9 @@ func ant(
 		pheromone[dst][src] = (1-rho)*pheromone[dst][src] + rho*t0
 		src = dst
 	}
+	// make sure to update last edge
+	pheromone[tour[0]][tour[n-1]] = (1-rho)*pheromone[tour[0]][tour[n-1]] + rho*t0
+	pheromone[tour[n-1]][tour[0]] = (1-rho)*pheromone[tour[n-1]][tour[0]] + rho*t0
 	two_opt(tour, matrix)
 	return tour
 }
