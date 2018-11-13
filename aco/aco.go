@@ -88,7 +88,7 @@ func ant(
 	tour []int, infos []*cityInfo, // can be shared with other ants
 	matrix [][]int, pheromone [][]float64, // problem specific components
 	beta, p_greedy, t0, rho float64, // parameters
-) []int {
+) {
 	// initialize tour and infos
 	n := len(matrix)
 	src := rand.Intn(n)
@@ -113,14 +113,13 @@ func ant(
 		tour[i] = dst
 		infos[dst].visited = true
 		pheromone[src][dst] = (1-rho)*pheromone[src][dst] + rho*t0
-		pheromone[dst][src] = (1-rho)*pheromone[dst][src] + rho*t0
 		src = dst
 	}
 	// make sure to update last edge
-	pheromone[tour[0]][tour[n-1]] = (1-rho)*pheromone[tour[0]][tour[n-1]] + rho*t0
 	pheromone[tour[n-1]][tour[0]] = (1-rho)*pheromone[tour[n-1]][tour[0]] + rho*t0
+	// for some reason, updating tour edges used in 2-opt is worse than updating
+	// the edges used to produce the tour ('wrong' edges).
 	two_opt(tour, matrix)
-	return tour
 }
 
 func nearest_neighbour(matrix [][]int) []int {
@@ -142,7 +141,7 @@ func nearest_neighbour(matrix [][]int) []int {
 	return tour
 }
 
-func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]int, int) {
+func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64, debug bool) ([]int, int) {
 	n := len(matrix)
 	m := 20
 	best := nearest_neighbour(matrix)
@@ -169,7 +168,9 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]
 	}
 
 	for G > 0 {
-		fmt.Fprintln(os.Stderr, G, best_cost, it_best_cost)
+		if debug {
+			fmt.Fprintln(os.Stderr, G, best_cost, it_best_cost)
+		}
 		G--
 		for i := 0; i < m; i++ {
 			ant(tour, infos,
@@ -196,7 +197,6 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64) ([]
 			x := gb[i]
 			y := gb[(i+1)%n]
 			pheromone[x][y] = (1-rho)*pheromone[x][y] + rho/float64(bc)
-			pheromone[y][x] = (1-rho)*pheromone[y][x] + rho/float64(bc)
 		}
 	}
 
@@ -212,6 +212,7 @@ func main() {
 	betaPtr := flag.Float64("beta", 2.0, "exploration")
 	p_greedyPtr := flag.Float64("pg", 0.9, "greedy probability")
 	rhoPtr := flag.Float64("rho", 0.9, "evaporation rate")
+	debugPtr := flag.Bool("debug", false, "debug")
 	GPtr := flag.Int("G", 2000, "iterations")
 	flag.Parse()
 
@@ -222,7 +223,7 @@ func main() {
 		panic(err)
 	}
 
-	tour, cost := aco(matrix, *GPtr, *betaPtr, *rhoPtr, *p_greedyPtr)
+	tour, cost := aco(matrix, *GPtr, *betaPtr, *rhoPtr, *p_greedyPtr, *debugPtr)
 	w := json.NewEncoder(os.Stdout)
 	w.Encode(Path{
 		Tour: tour,
