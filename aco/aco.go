@@ -7,6 +7,8 @@ import "encoding/json"
 import "math"
 import "math/rand"
 
+const MAX_DEPTH int = 5
+
 func cost(matrix [][]int, tour []int) int {
 	d := 0
 	for i := 1; i < len(tour); i++ {
@@ -20,6 +22,88 @@ func reverse(x []int, i, j int) {
 	for left, right := i, j; left < right; left, right = left+1, right-1 {
 		x[left], x[right] = x[right], x[left]
 	}
+}
+
+type searchNode struct {
+	tour  []int
+	depth int
+	used  map[int]bool
+}
+
+func union(A map[int]bool, x int) map[int]bool {
+	u := make(map[int]bool, len(A)+1)
+	for k, v := range A {
+		u[k] = v
+	}
+	u[x] = true
+	return u
+}
+
+func lk_opt(M [][]int, P []int) []int {
+	n := len(M)
+	S := []searchNode{}
+	S = append(S, searchNode{
+		tour:  P,
+		depth: 0,
+		used:  map[int]bool{},
+	})
+	var node searchNode
+	for len(S) > 0 {
+		node, S = S[len(S)-1], S[:len(S)-1]
+		// actually improve here
+		e := node.tour[n-1]
+		if node.depth < MAX_DEPTH {
+			for i, x := range node.tour {
+				y := node.tour[(i+1)%n]
+				if node.used[x] || (M[x][y]-M[e][x] <= 0) {
+					continue
+				}
+				Q := make([]int, n)
+				copy(Q, P)
+				reverse(Q, i+1, n-1) // reverse from y...e => ...xe...y
+				if cost(M, Q) < cost(M, P) {
+					return Q
+				}
+				S = append(S, searchNode{
+					tour:  Q,
+					depth: node.depth + 1,
+					used:  union(node.used, x),
+				})
+			}
+		} else {
+			max_g := 0
+			max_i := -1
+			max_x := -1
+			max_y := -1
+			for i, x := range node.tour {
+				if node.used[x] {
+					continue
+				}
+				y := node.tour[(i+1)%n]
+				g := M[x][y] - M[e][x]
+				if g > max_g {
+					max_g = g
+					max_i = i
+					max_x = x
+					max_y = y
+				}
+			}
+			if max_i != -1 && (M[max_x][max_y]-M[e][max_x] > 0) {
+				Q := make([]int, n)
+				copy(Q, P)
+				reverse(Q, max_i+1, n-1)
+				if cost(M, Q) < cost(M, P) {
+					return Q
+				}
+				S = append(S, searchNode{
+					tour:  Q,
+					depth: node.depth + 1,
+					used:  union(node.used, max_x),
+				})
+			}
+		}
+	}
+	return P
 }
 
 func two_opt(tour []int, matrix [][]int) int {
@@ -88,7 +172,7 @@ func ant(
 	tour []int, infos []*cityInfo, // can be shared with other ants
 	matrix [][]int, pheromone [][]float64, // problem specific components
 	beta, p_greedy, t0, rho float64, // parameters
-) {
+) int {
 	// initialize tour and infos
 	n := len(matrix)
 	src := rand.Intn(n)
@@ -112,14 +196,15 @@ func ant(
 		}
 		tour[i] = dst
 		infos[dst].visited = true
-		pheromone[src][dst] = (1-rho)*pheromone[src][dst] + rho*t0
+		pheromone[src][dst] *= 1 - rho
+		pheromone[src][dst] += rho * t0
 		src = dst
 	}
 	// make sure to update last edge
 	pheromone[tour[n-1]][tour[0]] = (1-rho)*pheromone[tour[n-1]][tour[0]] + rho*t0
 	// for some reason, updating tour edges used in 2-opt is worse than updating
 	// the edges used to produce the tour ('wrong' edges).
-	two_opt(tour, matrix)
+	return two_opt(tour, matrix)
 }
 
 func nearest_neighbour(matrix [][]int) []int {
@@ -146,7 +231,7 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64, deb
 	m := 20
 	best := nearest_neighbour(matrix)
 	best_cost := cost(matrix, best)
-	t0 := 1 / (float64(n) * float64(best_cost))
+	t0 := 1 / float64(n*best_cost)
 
 	// Create pheromone matrix with initial value t0
 	pheromone := make([][]float64, n)
@@ -173,10 +258,11 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64, deb
 		}
 		G--
 		for i := 0; i < m; i++ {
-			ant(tour, infos,
+			u := ant(
+				tour, infos,
 				matrix, pheromone,
-				beta, p_greedy, t0, rho)
-			u := cost(matrix, tour)
+				beta, p_greedy, t0, rho,
+			)
 			if u < best_cost {
 				copy(best, tour)
 				best_cost = u
@@ -199,7 +285,8 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64, deb
 			pheromone[x][y] = (1-rho)*pheromone[x][y] + rho/float64(bc)
 		}
 	}
-
+	best = lk_opt(matrix, best)
+	best_cost = cost(matrix, best)
 	return best, best_cost
 }
 
