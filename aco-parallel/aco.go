@@ -94,6 +94,7 @@ func update_ant(
 		// initialize tour and infos;
 		// start from 0 for all tours
 		tour[i] = 0
+		infos[0].visited = true
 		for j := 1; j < len(matrix); j++ {
 			infos[j].visited = false
 		}
