@@ -258,18 +258,14 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64, deb
 		}
 		G--
 		for i := 0; i < m; i++ {
-			u := ant(
-				tour, infos,
-				matrix, pheromone,
-				beta, p_greedy, t0, rho,
-			)
-			if u < best_cost {
+			tour_cost := ant(tour, infos, matrix, pheromone, beta, p_greedy, t0, rho)
+			if tour_cost < best_cost {
 				copy(best, tour)
-				best_cost = u
+				best_cost = tour_cost
 			}
-			if i == 0 || u < it_best_cost {
+			if i == 0 || tour_cost < it_best_cost {
 				copy(it_best, tour)
-				it_best_cost = u
+				it_best_cost = tour_cost
 			}
 		}
 		gb := it_best
@@ -282,7 +278,8 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64, deb
 		for i := 0; i < n; i++ {
 			x := gb[i]
 			y := gb[(i+1)%n]
-			pheromone[x][y] = (1-rho)*pheromone[x][y] + rho/float64(bc)
+			pheromone[x][y] *= 1 - rho
+			pheromone[x][y] += rho / float64(bc)
 		}
 	}
 	best = lk_opt(matrix, best)
