@@ -107,27 +107,21 @@ func lk_opt(M [][]int, P []int) []int {
 }
 
 func two_opt(tour []int, matrix [][]int) int {
-	tour_cost := cost(matrix, tour)
+	n := len(matrix)
 	improved := true
 	for improved {
 		improved = false
-		for i := 1; i < len(tour)-2; i++ {
-			for j := i + 1; j < len(tour); j++ {
-				if j-i == 1 {
-					continue
-				}
-				reverse(tour, i, j)
-				c := cost(matrix, tour)
-				if c < tour_cost {
-					tour_cost = c
-					improved = true
-				} else {
+		for i := 1; i < n-2; i++ {
+			for j := i + 2; j < n; j++ {
+				change := matrix[tour[i-1]][tour[i]] + matrix[tour[j]][tour[(j+1)%n]] - matrix[tour[i-1]][tour[j]] - matrix[tour[i]][tour[(j+1)%n]]
+				if change > 0 {
 					reverse(tour, i, j)
+					improved = true
 				}
 			}
 		}
 	}
-	return tour_cost
+	return cost(matrix, tour)
 }
 
 func max_weight(infos []*cityInfo) int {

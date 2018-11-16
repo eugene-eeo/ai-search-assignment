@@ -1,7 +1,6 @@
 package main
 
 import "flag"
-import "fmt"
 import "time"
 import "os"
 import "encoding/json"
@@ -23,28 +22,22 @@ func reverse(x []int, i, j int) {
 	}
 }
 
-func two_opt(tour []int, matrix [][]int) int {
-	tour_cost := cost(tour, matrix)
+func two_opt(V []int, M [][]int) int {
+	n := len(M)
 	improved := true
 	for improved {
 		improved = false
-		for i := 1; i < len(tour)-2; i++ {
-			for j := i + 1; j < len(tour); j++ {
-				if j-i == 1 {
-					continue
-				}
-				reverse(tour, i, j)
-				c := cost(tour, matrix)
-				if c < tour_cost {
-					tour_cost = c
+		for i := 1; i < n-2; i++ {
+			for j := i + 2; j < n; j++ {
+				change := M[V[i-1]][V[i]] + M[V[j]][V[(j+1)%n]] - M[V[i-1]][V[j]] - M[V[i]][V[(j+1)%n]]
+				if change > 0 {
+					reverse(V, i, j)
 					improved = true
-				} else {
-					reverse(tour, i, j)
 				}
 			}
 		}
 	}
-	return tour_cost
+	return cost(V, M)
 }
 
 func neighbour(x []int, s []int) {
@@ -107,7 +100,7 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 	T0 := T
 
 	for T > T_min {
-		fmt.Fprintln(os.Stderr, T, best_e)
+		//fmt.Fprintln(os.Stderr, T, best_e)
 		for i := 0; i < 5; i++ {
 			neighbour(next_s, s)
 			next_e := float64(two_opt(next_s, matrix))
@@ -135,7 +128,6 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 
 func main() {
 	alphaPtr := flag.Float64("alpha", 0.99670, "T *= alpha")
-	//fPtr := flag.Int("f", 10, "debug frequency")
 	flag.Parse()
 
 	rand.Seed(time.Now().UnixNano())
