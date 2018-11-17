@@ -2,7 +2,6 @@ package main
 
 import "flag"
 import "fmt"
-import "time"
 import "os"
 import "encoding/json"
 import "math"
@@ -136,7 +135,6 @@ func main() {
 	debugPtr := flag.Int("debug", 0, "debug frequency")
 	flag.Parse()
 
-	rand.Seed(time.Now().UnixNano())
 	matrix := [][]int{}
 	err := json.NewDecoder(os.Stdin).Decode(&matrix)
 	if err != nil {
@@ -145,8 +143,7 @@ func main() {
 
 	// actually do annealing
 	tour, cost := anneal(matrix, *alphaPtr, *debugPtr, *debugPtr > 0)
-	w := json.NewEncoder(os.Stdout)
-	w.Encode(Path{
+	json.NewEncoder(os.Stdout).Encode(Path{
 		Tour: tour,
 		Cost: cost,
 	})
