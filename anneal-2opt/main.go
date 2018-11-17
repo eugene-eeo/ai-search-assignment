@@ -1,6 +1,7 @@
 package main
 
 import "flag"
+import "fmt"
 import "time"
 import "os"
 import "encoding/json"
@@ -22,7 +23,7 @@ func reverse(x []int, i, j int) {
 	}
 }
 
-func two_opt(V []int, M [][]int) int {
+func two_opt(V []int, M [][]int) {
 	n := len(M)
 	improved := true
 	for improved {
@@ -37,7 +38,6 @@ func two_opt(V []int, M [][]int) int {
 			}
 		}
 	}
-	return cost(V, M)
 }
 
 func neighbour(x []int, s []int) {
@@ -62,6 +62,7 @@ func cost(s []int, matrix Matrix) int {
 }
 
 func p(e, next_e, temp float64) float64 {
+	// assume that next_e > e
 	return math.Exp((e - next_e) / temp)
 }
 
@@ -79,7 +80,7 @@ func ccopy(x []int) []int {
 	return s
 }
 
-func anneal(matrix Matrix, alpha float64) ([]int, int) {
+func anneal(matrix Matrix, alpha float64, debugFreq int, debug bool) ([]int, int) {
 	s := initial(len(matrix))
 	rand.Shuffle(len(matrix)-1, func(i, j int) {
 		s[i+1], s[j+1] = s[j+1], s[i+1]
@@ -92,6 +93,7 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 	best_e := float64(cost(s, matrix))
 
 	T := float64(len(matrix))
+	G := 0
 
 	// temperature
 	k := 0.0
@@ -100,10 +102,14 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 	T0 := T
 
 	for T > T_min {
-		//fmt.Fprintln(os.Stderr, T, best_e)
+		if debug && G%debugFreq == 0 {
+			fmt.Fprintln(os.Stderr, T, best_e)
+		}
+		G++
 		for i := 0; i < 5; i++ {
 			neighbour(next_s, s)
-			next_e := float64(two_opt(next_s, matrix))
+			two_opt(next_s, matrix)
+			next_e := float64(cost(next_s, matrix))
 			if next_e < best_e {
 				copy(best_s, next_s)
 				best_e = next_e
@@ -122,12 +128,12 @@ func anneal(matrix Matrix, alpha float64) ([]int, int) {
 		}
 	}
 
-	best_e = float64(two_opt(best_s, matrix))
 	return best_s, int(best_e)
 }
 
 func main() {
 	alphaPtr := flag.Float64("alpha", 0.99670, "T *= alpha")
+	debugPtr := flag.Int("debug", 0, "debug frequency")
 	flag.Parse()
 
 	rand.Seed(time.Now().UnixNano())
@@ -138,7 +144,7 @@ func main() {
 	}
 
 	// actually do annealing
-	tour, cost := anneal(matrix, *alphaPtr)
+	tour, cost := anneal(matrix, *alphaPtr, *debugPtr, *debugPtr > 0)
 	w := json.NewEncoder(os.Stdout)
 	w.Encode(Path{
 		Tour: tour,
