@@ -24,88 +24,6 @@ func reverse(x []int, i, j int) {
 	}
 }
 
-type searchNode struct {
-	tour  []int
-	depth int
-	used  map[int]bool
-}
-
-func union(A map[int]bool, x int) map[int]bool {
-	u := make(map[int]bool, len(A)+1)
-	for k, v := range A {
-		u[k] = v
-	}
-	u[x] = true
-	return u
-}
-
-func lk_opt(M [][]int, P []int) []int {
-	n := len(M)
-	S := []searchNode{}
-	S = append(S, searchNode{
-		tour:  P,
-		depth: 0,
-		used:  map[int]bool{},
-	})
-	var node searchNode
-	for len(S) > 0 {
-		node, S = S[len(S)-1], S[:len(S)-1]
-		// actually improve here
-		e := node.tour[n-1]
-		if node.depth < MAX_DEPTH {
-			for i, x := range node.tour {
-				y := node.tour[(i+1)%n]
-				if node.used[x] || (M[x][y]-M[e][x] <= 0) {
-					continue
-				}
-				Q := make([]int, n)
-				copy(Q, P)
-				reverse(Q, i+1, n-1) // reverse from y...e => ...xe...y
-				if cost(M, Q) < cost(M, P) {
-					return Q
-				}
-				S = append(S, searchNode{
-					tour:  Q,
-					depth: node.depth + 1,
-					used:  union(node.used, x),
-				})
-			}
-		} else {
-			max_g := 0
-			max_i := -1
-			max_x := -1
-			max_y := -1
-			for i, x := range node.tour {
-				if node.used[x] {
-					continue
-				}
-				y := node.tour[(i+1)%n]
-				g := M[x][y] - M[e][x]
-				if g > max_g {
-					max_g = g
-					max_i = i
-					max_x = x
-					max_y = y
-				}
-			}
-			if max_i != -1 && (M[max_x][max_y]-M[e][max_x] > 0) {
-				Q := make([]int, n)
-				copy(Q, P)
-				reverse(Q, max_i+1, n-1)
-				if cost(M, Q) < cost(M, P) {
-					return Q
-				}
-				S = append(S, searchNode{
-					tour:  Q,
-					depth: node.depth + 1,
-					used:  union(node.used, max_x),
-				})
-			}
-		}
-	}
-	return P
-}
-
 func two_opt(tour []int, matrix [][]int) int {
 	n := len(matrix)
 	improved := true
@@ -163,42 +81,34 @@ type cityInfo struct {
 }
 
 func ant(
-	tour []int, infos []*cityInfo, // can be shared with other ants
+	step int, tour []int, infos []*cityInfo,
 	matrix [][]int, pheromone [][]float64, // problem specific components
 	beta, p_greedy, t0, rho float64, // parameters
-) int {
-	// initialize tour and infos
-	n := len(matrix)
-	src := rand.Intn(n)
-	tour[0] = src
-	for i := 0; i < n; i++ {
-		infos[i].visited = i == src
-	}
-	for i := 1; i < n; i++ {
-		total := 0.0
-		for city, info := range infos {
-			if !info.visited {
-				info.weight = pheromone[src][city] / math.Pow(float64(matrix[src][city]), beta)
-				total += info.weight
-			}
+) {
+	if step == 0 {
+		src := rand.Intn(len(tour))
+		tour[0] = src
+		for i, info := range infos {
+			info.visited = i == src
 		}
-		dst := src
-		if rand.Float64() < p_greedy {
-			dst = max_weight(infos)
-		} else {
-			dst = choose_weighted(infos, total)
-		}
-		tour[i] = dst
-		infos[dst].visited = true
-		pheromone[src][dst] *= 1 - rho
-		pheromone[src][dst] += rho * t0
-		src = dst
+		return
 	}
-	// make sure to update last edge
-	pheromone[tour[n-1]][tour[0]] = (1-rho)*pheromone[tour[n-1]][tour[0]] + rho*t0
-	// for some reason, updating tour edges used in 2-opt is worse than updating
-	// the edges used to produce the tour ('wrong' edges).
-	return two_opt(tour, matrix)
+	src := tour[step-1]
+	total := 0.0
+	for city, info := range infos {
+		if !info.visited {
+			info.weight = pheromone[src][city] / math.Pow(float64(matrix[src][city]), beta)
+			total += info.weight
+		}
+	}
+	dst := src
+	if rand.Float64() < p_greedy {
+		dst = max_weight(infos)
+	} else {
+		dst = choose_weighted(infos, total)
+	}
+	tour[step] = dst
+	infos[dst].visited = true
 }
 
 func nearest_neighbour(matrix [][]int) []int {
@@ -240,19 +150,41 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64, deb
 	it_best_cost := best_cost
 	copy(it_best, best)
 
-	tour := make([]int, n)
-	infos := make([]*cityInfo, n)
-	for i := 0; i < n; i++ {
-		infos[i] = &cityInfo{}
+	tours := [20][]int{}
+	infos := [20][]*cityInfo{}
+	for i := 0; i < m; i++ {
+		infos[i] = make([]*cityInfo, n)
+		tours[i] = make([]int, n)
+		for j := 0; j < n; j++ {
+			infos[i][j] = &cityInfo{}
+		}
 	}
 
 	for G > 0 {
-		if debug {
-			fmt.Fprintln(os.Stderr, G, best_cost, it_best_cost)
-		}
 		G--
+		for step := 0; step < n; step++ {
+			for i := 0; i < m; i++ {
+				ant(step, tours[i], infos[i], matrix, pheromone, beta, p_greedy, t0, rho)
+			}
+			if step > 0 {
+				for i := 0; i < m; i++ {
+					// don't perform local update yet
+					pheromone[tours[i][step-1]][tours[i][step]] *= 1 - rho
+					pheromone[tours[i][step-1]][tours[i][step]] += rho * t0
+					pheromone[tours[i][step]][tours[i][step-1]] *= 1 - rho
+					pheromone[tours[i][step]][tours[i][step-1]] += rho * t0
+				}
+			}
+		}
 		for i := 0; i < m; i++ {
-			tour_cost := ant(tour, infos, matrix, pheromone, beta, p_greedy, t0, rho)
+			pheromone[tours[i][n-1]][tours[i][0]] *= 1 - rho
+			pheromone[tours[i][0]][tours[i][n-1]] *= 1 - rho
+			pheromone[tours[i][n-1]][tours[i][0]] += rho * t0
+			pheromone[tours[i][0]][tours[i][n-1]] += rho * t0
+			two_opt(tours[i], matrix)
+		}
+		for i, tour := range tours {
+			tour_cost := cost(matrix, tour)
 			if tour_cost < best_cost {
 				copy(best, tour)
 				best_cost = tour_cost
@@ -262,12 +194,12 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64, deb
 				it_best_cost = tour_cost
 			}
 		}
-		gb := it_best
-		bc := it_best_cost
-		// use global best instead
+		// every 20 rounds use local best
+		gb := best
+		bc := best_cost
 		if G%20 == 0 {
-			gb = best
-			bc = best_cost
+			gb = it_best
+			bc = it_best_cost
 		}
 		for i := 0; i < n; i++ {
 			x := gb[i]
@@ -275,9 +207,14 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64, deb
 			pheromone[x][y] *= 1 - rho
 			pheromone[x][y] += rho / float64(bc)
 		}
+		if debug {
+			costs := [20]int{}
+			for i, tour := range tours {
+				costs[i] = cost(matrix, tour)
+			}
+			fmt.Fprintln(os.Stderr, G, best_cost, costs[:5])
+		}
 	}
-	best = lk_opt(matrix, best)
-	best_cost = cost(matrix, best)
 	return best, best_cost
 }
 
