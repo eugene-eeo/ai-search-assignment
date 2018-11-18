@@ -7,8 +7,6 @@ import "encoding/json"
 import "math"
 import "math/rand"
 
-type Matrix = [][]int
-
 type Path struct {
 	Tour []int `json:"tour"`
 	Cost int   `json:"cost"`
@@ -51,12 +49,12 @@ func neighbour(x []int, s []int) {
 	reverse(x, i, j)
 }
 
-func cost(s []int, matrix Matrix) int {
+func cost(V []int, M [][]int) int {
 	d := 0
-	for i := 1; i < len(s); i++ {
-		d += matrix[s[i-1]][s[i]]
+	for i := 1; i < len(V); i++ {
+		d += M[V[i-1]][V[i]]
 	}
-	d += matrix[s[len(s)-1]][s[0]]
+	d += M[V[len(V)-1]][V[0]]
 	return d
 }
 
@@ -79,7 +77,7 @@ func ccopy(x []int) []int {
 	return s
 }
 
-func anneal(matrix Matrix, alpha float64, debugFreq int, debug bool) ([]int, int) {
+func anneal(matrix [][]int, alpha float64, debugFreq int, debug bool) ([]int, int) {
 	s := initial(len(matrix))
 	rand.Shuffle(len(matrix)-1, func(i, j int) {
 		s[i+1], s[j+1] = s[j+1], s[i+1]
