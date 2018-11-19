@@ -24,22 +24,29 @@ func reverse(x []int, i, j int) {
 	}
 }
 
-func two_opt(tour []int, matrix [][]int) int {
-	n := len(matrix)
+func two_opt(V []int, M [][]int) {
+	n := len(M)
+	bi := 0
+	bj := 0
 	improved := true
 	for improved {
 		improved = false
+		min_change := 0
 		for i := 1; i < n-2; i++ {
 			for j := i + 2; j < n; j++ {
-				change := matrix[tour[i-1]][tour[i]] + matrix[tour[j]][tour[(j+1)%n]] - matrix[tour[i-1]][tour[j]] - matrix[tour[i]][tour[(j+1)%n]]
-				if change > 0 {
-					reverse(tour, i, j)
+				change := M[V[i-1]][V[i]] + M[V[j]][V[(j+1)%n]] - M[V[i-1]][V[j]] - M[V[i]][V[(j+1)%n]]
+				if change > min_change {
 					improved = true
+					min_change = change
+					bi = i
+					bj = j
 				}
 			}
 		}
+		if improved {
+			reverse(V, bi, bj)
+		}
 	}
-	return cost(matrix, tour)
 }
 
 func max_weight(infos []*cityInfo) int {
