@@ -174,21 +174,24 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64, deb
 				ant(step, tours[i], infos[i], matrix, pheromone, beta, p_greedy, t0, rho)
 			}
 			if step > 0 {
-				for i := 0; i < m; i++ {
+				for _, tour := range tours {
+					src := tour[step-1]
+					dst := tour[step]
 					// don't perform local update yet
-					pheromone[tours[i][step-1]][tours[i][step]] *= 1 - rho
-					pheromone[tours[i][step-1]][tours[i][step]] += rho * t0
-					pheromone[tours[i][step]][tours[i][step-1]] *= 1 - rho
-					pheromone[tours[i][step]][tours[i][step-1]] += rho * t0
+					pheromone[src][dst] *= 1 - rho
+					pheromone[src][dst] += rho * t0
+					pheromone[dst][src] *= 1 - rho
+					pheromone[dst][src] += rho * t0
 				}
 			}
 		}
-		for i := 0; i < m; i++ {
-			pheromone[tours[i][n-1]][tours[i][0]] *= 1 - rho
-			pheromone[tours[i][0]][tours[i][n-1]] *= 1 - rho
-			pheromone[tours[i][n-1]][tours[i][0]] += rho * t0
-			pheromone[tours[i][0]][tours[i][n-1]] += rho * t0
-			two_opt(tours[i], matrix)
+		for _, tour := range tours {
+			// update wraparound edge
+			pheromone[tour[n-1]][tour[0]] *= 1 - rho
+			pheromone[tour[n-1]][tour[0]] += rho * t0
+			pheromone[tour[0]][tour[n-1]] *= 1 - rho
+			pheromone[tour[0]][tour[n-1]] += rho * t0
+			two_opt(tour, matrix)
 		}
 		for i, tour := range tours {
 			tour_cost := cost(matrix, tour)
@@ -213,6 +216,8 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64, deb
 			y := gb[(i+1)%n]
 			pheromone[x][y] *= 1 - rho
 			pheromone[x][y] += rho / float64(bc)
+			pheromone[y][x] *= 1 - rho
+			pheromone[y][x] += rho / float64(bc)
 		}
 		if debug {
 			costs := [20]int{}
