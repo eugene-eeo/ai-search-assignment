@@ -7,8 +7,6 @@ import "encoding/json"
 import "math"
 import "math/rand"
 
-const MAX_DEPTH int = 5
-
 func cost(matrix [][]int, tour []int) int {
 	d := 0
 	for i := 1; i < len(tour); i++ {
@@ -177,7 +175,6 @@ func aco(matrix [][]int, G int, beta float64, rho float64, p_greedy float64, deb
 				for _, tour := range tours {
 					src := tour[step-1]
 					dst := tour[step]
-					// don't perform local update yet
 					pheromone[src][dst] *= 1 - rho
 					pheromone[src][dst] += rho * t0
 					pheromone[dst][src] *= 1 - rho
