@@ -40,14 +40,9 @@ func two_opt(V []int, M [][]int) {
 func neighbour(x []int, s []int) {
 	copy(x, s)
 	n := len(s)
-	i := 1
-	j := 1
-	k := 1
-	for !(i < j && j < k) {
-		i = 1 + rand.Intn(n-1)
-		j = 1 + rand.Intn(n-1)
-		k = 1 + rand.Intn(n-1)
-	}
+	i := 1 + rand.Intn(n-3)
+	j := (i + 1) + rand.Intn(n-2-i)
+	k := (j + 1) + rand.Intn(n-1-j)
 	reverse(x, i, j)
 	reverse(x, j, k)
 }
