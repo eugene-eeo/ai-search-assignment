@@ -14,8 +14,9 @@ def main():
             min_cost = cost
             min_tour = tour
 
-    print("NAME = AISearchfile{:03},".format(len(min_tour)))
-    print("TOURSIZE = {},".format(len(min_tour)))
+    n = len(min_tour)
+    print("NAME = AISearchfile{:03},".format(n))
+    print("TOURSIZE = {},".format(n))
     print("LENGTH = {},".format(min_cost))
     print(",".join(str(k+1) for k in min_tour))
 

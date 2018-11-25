@@ -1,6 +1,18 @@
-Thu 11/08/18  10:52:32 PM
+Sun 11/25/18  01:21:58 PM
 
 directory: njzj22 ...
+TourfileB...
+AISearchfile012.txt: good (length of tour is 56)
+AISearchfile017.txt: good (length of tour is 1444)
+AISearchfile021.txt: good (length of tour is 2549)
+AISearchfile026.txt: good (length of tour is 1473)
+AISearchfile042.txt: good (length of tour is 1055)
+AISearchfile048.txt: good (length of tour is 12164)
+AISearchfile058.txt: good (length of tour is 25395)
+AISearchfile175.txt: good (length of tour is 21407)
+AISearchfile180.txt: good (length of tour is 1950)
+AISearchfile535.txt: good (length of tour is 48455)
+AISearchtestcase.txt: no tour-file present
 TourfileA...
 AISearchfile012.txt: good (length of tour is 56)
 AISearchfile017.txt: good (length of tour is 1444)
@@ -11,7 +23,7 @@ AISearchfile048.txt: good (length of tour is 12150)
 AISearchfile058.txt: good (length of tour is 25395)
 AISearchfile175.txt: good (length of tour is 21407)
 AISearchfile180.txt: good (length of tour is 1950)
-AISearchfile535.txt: good (length of tour is 48486)
+AISearchfile535.txt: good (length of tour is 48450)
 AISearchtestcase.txt: no tour-file present
 
 Best tours:
@@ -34,6 +46,6 @@ AISearchfile175.txt: best tour has length 21407
 AISearchfile175.txt winners : njzj22
 AISearchfile180.txt: best tour has length 1950
 AISearchfile180.txt winners : njzj22
-AISearchfile535.txt: best tour has length 48486
+AISearchfile535.txt: best tour has length 48450
 AISearchfile535.txt winners : njzj22
 AISearchtestcase.txt: there is no best tour!
